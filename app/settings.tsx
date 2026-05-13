@@ -1,18 +1,63 @@
-import { ScrollView, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { OPENAI_LANGS, SONIOX_LANGS, type Language } from "@/src/lib/languages";
 import { useSettings } from "@/src/state/settings-context";
+import type { Engine, LangCode } from "@/src/types";
 
 export default function SettingsScreen() {
-  const { sonioxKey, openaiKey, setSonioxKey, setOpenaiKey } = useSettings();
+  const {
+    sonioxKey,
+    openaiKey,
+    engine,
+    sourceLang,
+    targetLang,
+    setSonioxKey,
+    setOpenaiKey,
+    setEngine,
+    setSourceLang,
+    setTargetLang,
+  } = useSettings();
+
+  const langs: Language[] = engine === "soniox" ? SONIOX_LANGS : OPENAI_LANGS;
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950" edges={["bottom"]}>
-      <ScrollView className="flex-1 px-4 py-4" contentContainerClassName="gap-4">
-        <View>
-          <Text className="text-zinc-900 dark:text-zinc-100 font-semibold mb-1">
-            Soniox API key
+      <ScrollView className="flex-1 px-4 py-4" contentContainerClassName="gap-5">
+        <Section title="Engine">
+          <Row>
+            <Choice
+              label="Soniox"
+              active={engine === "soniox"}
+              onPress={() => setEngine("soniox")}
+            />
+            <Choice
+              label="OpenAI"
+              active={engine === "openai"}
+              onPress={() => setEngine("openai")}
+            />
+          </Row>
+          <Text className="text-zinc-500 text-xs mt-1">
+            {engine === "soniox"
+              ? "Soniox · ~$0.12/hr · text-only"
+              : "OpenAI Realtime · ~$4/hr · text + voice (phase 3)"}
           </Text>
+        </Section>
+
+        <Section title="Source language">
+          <LangPicker
+            value={sourceLang}
+            onChange={setSourceLang}
+            langs={langs}
+            includeAuto={engine === "soniox"}
+          />
+        </Section>
+
+        <Section title="Target language">
+          <LangPicker value={targetLang} onChange={setTargetLang} langs={langs} />
+        </Section>
+
+        <Section title="Soniox API key">
           <TextInput
             value={sonioxKey}
             onChangeText={setSonioxKey}
@@ -23,11 +68,9 @@ export default function SettingsScreen() {
             secureTextEntry
             className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
           />
-        </View>
-        <View>
-          <Text className="text-zinc-900 dark:text-zinc-100 font-semibold mb-1">
-            OpenAI API key
-          </Text>
+        </Section>
+
+        <Section title="OpenAI API key">
           <TextInput
             value={openaiKey}
             onChangeText={setOpenaiKey}
@@ -39,13 +82,87 @@ export default function SettingsScreen() {
             className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
           />
           <Text className="text-zinc-500 text-xs mt-1">
-            OpenAI Realtime ≈ $4/hr — billed to your key.
+            Billed to your key. OpenAI Realtime ≈ $4/hr.
           </Text>
-        </View>
-        <Text className="text-zinc-500 text-xs">
-          More settings (engine, languages, font size) coming in phase 4.
-        </Text>
+        </Section>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View>
+      <Text className="text-zinc-900 dark:text-zinc-100 font-semibold mb-2">
+        {title}
+      </Text>
+      {children}
+    </View>
+  );
+}
+
+function Row({ children }: { children: React.ReactNode }) {
+  return <View className="flex-row flex-wrap gap-2">{children}</View>;
+}
+
+function Choice({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      className={
+        active
+          ? "px-3 py-2 rounded-lg bg-zinc-900 dark:bg-white"
+          : "px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700"
+      }
+    >
+      <Text
+        className={
+          active
+            ? "text-white dark:text-zinc-900 font-medium"
+            : "text-zinc-900 dark:text-zinc-100"
+        }
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function LangPicker({
+  value,
+  onChange,
+  langs,
+  includeAuto = false,
+}: {
+  value: LangCode;
+  onChange: (v: LangCode) => void;
+  langs: Language[];
+  includeAuto?: boolean;
+}) {
+  const options: Language[] = includeAuto
+    ? [{ code: "auto", name: "Auto-detect" }, ...langs]
+    : langs;
+  return (
+    <Row>
+      {options.map((l) => (
+        <Choice
+          key={l.code}
+          label={l.name}
+          active={value === l.code}
+          onPress={() => onChange(l.code)}
+        />
+      ))}
+    </Row>
+  );
+}
+
+// Re-export so type imports stay co-located with consumers if needed later.
+export type { Engine };
