@@ -6,25 +6,45 @@ Captures phone mic at conferences/lectures and shows live translation.
 Two engines:
 
 - **Soniox** (~$0.12/hr, text-only)
-- **OpenAI Realtime** (~$4/hr, text + native voice)
+- **OpenAI Realtime** (~$4/hr, text + native voice playback)
 
 Bring-your-own API key — keys are stored locally in iOS Keychain / Android Keystore via `expo-secure-store`. No backend, no telemetry, no transcript history.
 
 ---
 
-## Status
+## Install (end-user)
 
-Phase 1 — project scaffold (work in progress). See `plans/260514-0049-mobile-app-mvp/plan.md` in the desktop repo.
+### iOS — TestFlight
+
+1. Install [TestFlight](https://apps.apple.com/app/testflight/id899247664) from the App Store.
+2. Open the TestFlight invite link the maintainer shares with you.
+3. Tap **Accept** → **Install**.
+
+### Android — APK from GitHub Releases
+
+1. On your Android phone, open the latest [Release](https://github.com/phuc-nt/my-translator-mobile/releases) and download the `.apk` artifact.
+2. When prompted, allow your browser to install unknown apps (Settings → Apps → Your browser → Install unknown apps).
+3. Open the downloaded APK and tap **Install**.
+
+### First-run setup
+
+1. Open the app — you'll be sent to **Settings** because no API key is saved yet.
+2. Paste either:
+   - **Soniox API key** — get one from <https://console.soniox.com> (cheap, text-only, recommended).
+   - **OpenAI API key** — get one from <https://platform.openai.com/api-keys> (more expensive but plays voice).
+   - **Tip:** Set a low monthly spending cap on your OpenAI key.
+3. Pick your **source** and **target** language.
+4. Back on the main screen, tap **Start**, allow the microphone prompt, and start speaking.
 
 ---
 
 ## Stack
 
-- Expo SDK 54 + TypeScript
+- Expo SDK 54 + React Native 0.81 + TypeScript
 - Expo Router v4 (file-based)
 - NativeWind v4 (Tailwind for RN)
 - `react-native-audio-api` 0.11 (mic capture + PCM playback)
-- `expo-secure-store` (API keys)
+- `expo-secure-store` (API keys + prefs)
 - Distribution: EAS Build → TestFlight (iOS) + APK on GitHub Release (Android)
 
 ## Develop
@@ -32,14 +52,35 @@ Phase 1 — project scaffold (work in progress). See `plans/260514-0049-mobile-a
 ```bash
 npm install
 npx expo prebuild --clean
-npx expo run:ios       # or run:android
+npx expo run:ios       # or: npx expo run:android
 ```
 
-For dev iteration after the first native build:
+After the first native build, iterate via:
 
 ```bash
 npx expo start --dev-client
 ```
+
+## Build & ship
+
+```bash
+# install once
+npm i -g eas-cli
+eas login
+
+# iOS → TestFlight
+eas build --profile production --platform ios
+eas submit --platform ios --latest
+
+# Android → APK artifact (download → attach to GitHub Release)
+eas build --profile production --platform android
+```
+
+`eas.json` profiles:
+
+- `development` — for local dev client (simulator OK on iOS)
+- `preview` — internal distribution APK / ad-hoc iOS
+- `production` — TestFlight + signed APK
 
 ## Project layout
 
@@ -47,10 +88,12 @@ npx expo start --dev-client
 app/                    # Expo Router screens
   _layout.tsx           # Root layout + providers
   index.tsx             # Translate screen
-  settings.tsx          # Settings (API keys etc.)
+  settings.tsx          # Settings (API keys, engine, langs, font, panel)
 src/
-  engines/              # Soniox + OpenAI Realtime clients (phase 2/3)
-  lib/                  # audio capture, secure-keys, languages
+  engines/              # soniox-client.ts + openai-realtime-client.ts
+  lib/                  # audio-capture.ts, openai-audio-output-queue.ts,
+                        # secure-keys.ts, languages.ts
+  components/           # transcript-stream.tsx
   state/                # Settings + Session contexts
   types/                # Shared TS types
 ```
