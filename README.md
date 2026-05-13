@@ -1,50 +1,60 @@
-# Welcome to your Expo app 👋
+# My Translator — Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Minimal iOS + Android companion to [my-translator](https://github.com/phuc-nt/my-translator) (desktop).
+Captures phone mic at conferences/lectures and shows live translation.
 
-## Get started
+Two engines:
 
-1. Install dependencies
+- **Soniox** (~$0.12/hr, text-only)
+- **OpenAI Realtime** (~$4/hr, text + native voice)
 
-   ```bash
-   npm install
-   ```
+Bring-your-own API key — keys are stored locally in iOS Keychain / Android Keystore via `expo-secure-store`. No backend, no telemetry, no transcript history.
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## Status
 
-In the output, you'll find options to open the app in a
+Phase 1 — project scaffold (work in progress). See `plans/260514-0049-mobile-app-mvp/plan.md` in the desktop repo.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Stack
 
-## Get a fresh project
+- Expo SDK 54 + TypeScript
+- Expo Router v4 (file-based)
+- NativeWind v4 (Tailwind for RN)
+- `react-native-audio-api` 0.11 (mic capture + PCM playback)
+- `expo-secure-store` (API keys)
+- Distribution: EAS Build → TestFlight (iOS) + APK on GitHub Release (Android)
 
-When you're ready, run:
+## Develop
 
 ```bash
-npm run reset-project
+npm install
+npx expo prebuild --clean
+npx expo run:ios       # or run:android
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+For dev iteration after the first native build:
 
-## Learn more
+```bash
+npx expo start --dev-client
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Project layout
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```
+app/                    # Expo Router screens
+  _layout.tsx           # Root layout + providers
+  index.tsx             # Translate screen
+  settings.tsx          # Settings (API keys etc.)
+src/
+  engines/              # Soniox + OpenAI Realtime clients (phase 2/3)
+  lib/                  # audio capture, secure-keys, languages
+  state/                # Settings + Session contexts
+  types/                # Shared TS types
+```
 
-## Join the community
+## License
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Same as desktop my-translator.
