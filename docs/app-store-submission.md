@@ -15,18 +15,12 @@ The product positioning, repeated consistently across every field below:
 | Field | Value |
 | --- | --- |
 | **Name** | `My Translator - Live Captions` |
-| **Subtitle** (30 chars max) | `Live talks, no cabin needed` |
+| **Subtitle** (30 chars max) | `Conference live translation` |
 | **Primary Category** | Productivity |
 | **Secondary Category** | Utilities (optional) |
 | **Bundle ID** | `com.phucnt.mytranslator` |
 | **Content Rights** | Does not contain third-party content |
 | **Age Rating** | 4+ (no objectionable content; see questionnaire notes below) |
-
-### Subtitle alternatives (pick one, ≤30 chars)
-
-- `Live talks, no cabin needed` (27)
-- `Live captions for talks` (23)
-- `Conference live translation` (27)
 
 ---
 
@@ -195,4 +189,3 @@ These must be captured from the running app on a correctly sized simulator or de
 
 - Screenshots not yet captured — hard blocker for submission. Need to run the app on a 6.9" simulator and capture 3–4 portrait shots.
 - Whether to proactively supply a reviewer key vs. wait for them to ask (current choice: instruct them to self-serve a free Soniox key; revisit if rejected on 2.1).
-- Subtitle final choice among the three candidates.
