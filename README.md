@@ -1,106 +1,125 @@
+<div align="center">
+
+<img src="assets/images/icon.png" width="96" alt="My Translator icon" />
+
 # My Translator — Mobile
 
-Minimal iOS + Android companion to [my-translator](https://github.com/phuc-nt/my-translator) (desktop).
-Captures phone mic at conferences/lectures and shows live translation.
+**Live translation for talks and lectures.**
+Point your phone at the speaker, read the talk in your language, in real time.
 
-Two engines:
+A lightweight stand-in for a human cabin (booth) interpreter when there isn't one.
 
-- **Soniox** (~$0.12/hr, text-only)
-- **OpenAI Realtime** (~$4/hr, text + optional voice playback — muted by default, toggle in header)
-
-Source language is auto-detected. You only pick a target.
-
-Bring-your-own API key — keys are stored locally in iOS Keychain / Android Keystore via `expo-secure-store`. No backend, no telemetry, no transcript history.
+</div>
 
 ---
 
-## Install (end-user)
+## Install
 
-### iOS — TestFlight
+### iPhone / iPad — TestFlight
 
-1. Install [TestFlight](https://apps.apple.com/app/testflight/id899247664) from the App Store.
-2. Open the TestFlight invite link the maintainer shares with you.
-3. Tap **Accept** → **Install**.
+1. Install **[TestFlight](https://apps.apple.com/app/testflight/id899247664)** from the App Store.
+2. Open this link on your device → tap **Accept** → **Install**:
 
-### Android — APK from GitHub Releases
+   **https://testflight.apple.com/join/Fw9VJXfE**
 
-1. On your Android phone, open the latest [Release](https://github.com/phuc-nt/my-translator-mobile/releases/latest) and download the `.apk` asset (or use the [direct download](https://github.com/phuc-nt/my-translator-mobile/releases/download/v0.1.0-android/my-translator-0.1.0.apk)).
-2. When prompted, allow your browser to install unknown apps (Settings → Apps → Your browser → Install unknown apps).
-3. Open the downloaded APK and tap **Install**. If Play Protect warns, tap **Install anyway**.
+### Android — APK
 
-### First-run setup
-
-1. Open the app — you'll be sent to **Settings** because no API key is saved yet.
-2. Paste either:
-   - **Soniox API key** — get one from <https://console.soniox.com> (cheap, text-only, recommended).
-   - **OpenAI API key** — get one from <https://platform.openai.com/api-keys> (more expensive but plays voice).
-   - **Tip:** Set a low monthly spending cap on your OpenAI key.
-3. Pick your **target** language (source is auto-detected).
-4. Back on the main screen, tap **Start**, allow the microphone prompt, and start speaking.
-5. On OpenAI engine, tap 🔇 in the header to unmute TTS audio if you want voice output.
+1. Open the **[latest release](https://github.com/phuc-nt/my-translator-mobile/releases/latest)** on your phone and download the `.apk`
+   ([direct download](https://github.com/phuc-nt/my-translator-mobile/releases/download/v0.1.0-android/my-translator-0.1.0.apk)).
+2. Allow your browser to "install unknown apps" when prompted.
+3. Open the file → **Install** (tap **Install anyway** if Play Protect warns).
 
 ---
 
-## Stack
+## First-run setup
 
-- Expo SDK 54 + React Native 0.81 + TypeScript
-- Expo Router v4 (file-based)
-- NativeWind v4 (Tailwind for RN)
-- `react-native-audio-api` 0.11 (mic capture + PCM playback)
-- `expo-secure-store` (API keys + prefs)
-- Distribution: EAS Build → TestFlight (iOS) + APK on GitHub Release (Android)
+1. Open the app — it sends you straight to **Settings** (no API key saved yet).
+2. Paste **one** API key:
+   - **Soniox** — get one at <https://console.soniox.com>. Cheap (~$0.12/hr), text only. **Recommended.**
+   - **OpenAI** — get one at <https://platform.openai.com/api-keys>. ~$4/hr, adds spoken voice. Tip: set a low monthly cap.
+3. Pick your **target** language (the spoken language is auto-detected).
+4. Back on the main screen, tap **Start**, allow the microphone, and listen.
+5. On OpenAI: tap 🔇 in the header to unmute voice output.
 
-## Develop
+> Your key stays in the device's secure keychain. Audio goes **straight to the provider you chose** — no backend, no tracking, no transcript history. See [PRIVACY.md](PRIVACY.md).
+
+---
+
+## Screenshots
+
+<div align="center">
+
+<img src="docs/app-store-screenshots/readme-thumbs/01-live-translation-6.9.png" width="240" alt="Live translation" />
+<img src="docs/app-store-screenshots/readme-thumbs/02-settings-byok-6.9.png" width="240" alt="Settings — bring your own key" />
+<img src="docs/app-store-screenshots/readme-thumbs/03-empty-state-6.9.png" width="240" alt="Ready to start" />
+
+*Live translation · Settings (bring your own key) · Ready to start*
+
+</div>
+
+---
+
+## Engines
+
+| Engine | Cost | Output |
+| --- | --- | --- |
+| **Soniox** | ~$0.12/hr | On-screen translated text |
+| **OpenAI Realtime** | ~$4/hr | Text + optional spoken voice (muted by default) |
+
+Source language is auto-detected — you only pick a target.
+
+---
+
+<details>
+<summary><strong>For developers</strong></summary>
+
+### Stack
+
+Expo SDK 54 · React Native 0.81 · TypeScript · Expo Router v4 · NativeWind v4 ·
+`react-native-audio-api` (mic + PCM playback) · `expo-secure-store` (keys).
+Distribution: EAS Build → TestFlight (iOS) + APK on GitHub Release (Android).
+
+### Develop
 
 ```bash
 npm install
 npx expo prebuild --clean
 npx expo run:ios       # or: npx expo run:android
-```
-
-After the first native build, iterate via:
-
-```bash
+# iterate after first native build:
 npx expo start --dev-client
 ```
 
-## Build & ship
+See [docs/react-native-dev-vs-production.md](docs/react-native-dev-vs-production.md)
+for how the dev client / Metro / production builds differ.
+
+### Build & ship
 
 ```bash
-# install once
-npm i -g eas-cli
-eas login
+npm i -g eas-cli && eas login
 
 # iOS → TestFlight
 eas build --profile production --platform ios
 eas submit --platform ios --latest
 
-# Android → APK artifact (download → attach to GitHub Release)
+# Android → APK (download artifact, attach to a GitHub Release)
 eas build --profile production --platform android
 ```
 
-`eas.json` profiles:
+`eas.json` profiles: `development` (dev client), `preview` (internal APK / ad-hoc iOS), `production` (TestFlight + signed APK).
 
-- `development` — for local dev client (simulator OK on iOS)
-- `preview` — internal distribution APK / ad-hoc iOS
-- `production` — TestFlight + signed APK
-
-## Project layout
+### Layout
 
 ```
-app/                    # Expo Router screens
-  _layout.tsx           # Root layout + providers
-  index.tsx             # Translate screen
-  settings.tsx          # Settings (API keys, engine, langs, font, panel)
+app/        Expo Router screens (index = translate, settings)
 src/
-  engines/              # soniox-client.ts + openai-realtime-client.ts
-  lib/                  # audio-capture.ts, openai-audio-output-queue.ts,
-                        # secure-keys.ts, languages.ts
-  components/           # transcript-stream.tsx
-  state/                # Settings + Session contexts
-  types/                # Shared TS types
+  engines/    soniox-client.ts, openai-realtime-client.ts
+  lib/        audio-capture, audio-output-queue, secure-keys, languages
+  components/ transcript-stream.tsx
+  state/      Settings + Session contexts
 ```
+
+</details>
 
 ## License
 
-Same as desktop my-translator.
+Same as desktop [my-translator](https://github.com/phuc-nt/my-translator).

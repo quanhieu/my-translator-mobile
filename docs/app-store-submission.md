@@ -4,7 +4,7 @@ All text to paste into App Store Connect when submitting My Translator for publi
 
 The product positioning, repeated consistently across every field below:
 
-- **Purpose:** a live caption/translation companion for conferences and lectures — a lightweight stand-in for a human cabin (booth) interpreter when none is available.
+- **Purpose:** a live translation companion for conferences and lectures — a lightweight stand-in for a human cabin (booth) interpreter when none is available. It translates the spoken language into the language you choose, shown on screen in real time (not same-language captioning).
 - **Why the UI is intentionally minimal:** during a live talk the user is listening and cannot fiddle with controls. Fewer options = less distraction = the app stays out of the way.
 - **Why Bring-Your-Own-Key (BYOK):** we run no backend and do not track users. Audio goes directly from the device to the one speech provider the user chose — it does not pass through our servers or any intermediary. The user's voice is never relayed through a third party we operate.
 
@@ -14,7 +14,7 @@ The product positioning, repeated consistently across every field below:
 
 | Field | Value |
 | --- | --- |
-| **Name** | `My Translator - Live Captions` |
+| **Name** | `My Translator Mobile` |
 | **Subtitle** (30 chars max) | `Conference live translation` |
 | **Primary Category** | Productivity |
 | **Secondary Category** | Utilities (optional) |
@@ -27,7 +27,7 @@ The product positioning, repeated consistently across every field below:
 ## Promotional Text (170 chars, editable anytime without review)
 
 ```
-Live captions for conferences and lectures when there's no interpreter booth. Your audio goes straight to the engine you pick — no tracking, no middleman, bring your own key.
+Live translation for conferences and lectures when there's no interpreter booth. Your audio goes straight to the engine you pick — no tracking, no middleman, bring your own key.
 ```
 
 ---
@@ -35,7 +35,7 @@ Live captions for conferences and lectures when there's no interpreter booth. Yo
 ## Description (full)
 
 ```
-My Translator turns your phone into a live caption and translation companion for conferences, lectures, and talks — a lightweight stand-in for a human cabin (booth) interpreter when one isn't available.
+My Translator turns your phone into a live translation companion for conferences, lectures, and talks — a lightweight stand-in for a human cabin (booth) interpreter when one isn't available. It listens to the speaker and shows the talk translated into the language you pick, on screen, in real time.
 
 WHAT IT DOES
 Point your phone's microphone at the speaker. The app streams the audio to a speech engine you choose and shows the translation on screen in real time, in large readable text, so you can follow a talk in a language you don't speak.
@@ -49,7 +49,7 @@ We do not run a server. We do not track you. We have no analytics and keep no tr
 You bring your own API key for the speech engine (Soniox or OpenAI). Your audio is sent directly from your device to that one provider — it never passes through our servers or any middleman. Your spoken voice is not relayed through a company you didn't choose. Your API key is stored only in your device's secure keychain and is never uploaded anywhere we control.
 
 ENGINES
-- Soniox — low cost, text captions only.
+- Soniox — low cost, on-screen translated text only.
 - OpenAI Realtime — higher cost, adds optional spoken translation (muted by default; tap to enable).
 
 GOOD TO KNOW
@@ -65,10 +65,10 @@ My Translator is intended as an accessibility/comprehension aid, not a certified
 ## Keywords (100 chars max, comma-separated, no spaces after commas)
 
 ```
-translate,live,caption,conference,lecture,interpreter,subtitle,speech,realtime,transcribe,talk,seminar
+translate,translation,live,conference,lecture,interpreter,speech,realtime,talk,seminar,language
 ```
 
-(98 chars — fits.)
+(94 chars — fits.)
 
 ---
 
@@ -77,7 +77,7 @@ translate,live,caption,conference,lecture,interpreter,subtitle,speech,realtime,t
 ```
 First public release.
 
-- Live translation captions for talks and lectures
+- Live on-screen translation for talks and lectures
 - Auto-detected source language; pick your target
 - Soniox (text) or OpenAI Realtime (text + optional voice) engines
 - Bring your own API key — no tracking, no backend, audio goes straight to the engine you choose
@@ -118,7 +118,7 @@ One nuance: the app provides unfiltered live translation of whatever is being sp
 
 ```
 WHAT THIS APP IS
-My Translator is a live translation/caption tool for conferences and lectures. It is meant as a lightweight, low-distraction stand-in for a human cabin (booth) interpreter when one is not available. The minimal single-screen UI is intentional: a user attending a live talk is listening and must not be distracted by configuration.
+My Translator is a live translation tool for conferences and lectures. It translates the spoken language into a target language the user picks and displays it on screen in real time. It is meant as a lightweight, low-distraction stand-in for a human cabin (booth) interpreter when one is not available. The minimal single-screen UI is intentional: a user attending a live talk is listening and must not be distracted by configuration.
 
 WHY THERE IS NO ACCOUNT AND WHY THE APP ASKS FOR AN API KEY (please read before testing)
 This is a privacy decision, not an incomplete feature. We deliberately run NO backend server and collect NO user data. To achieve that, the app does not proxy anyone's audio: instead the user supplies their own API key for a speech provider, and the device streams audio DIRECTLY to that provider. This guarantees the user's voice/audio is never relayed through our servers or any intermediary the user did not choose. The key is stored only in the iOS keychain and is never transmitted anywhere we control.
@@ -131,7 +131,7 @@ Either provider works. Soniox is the cheapest and offers free trial credit:
 3. In the app, you are taken to Settings on first launch. Paste the Soniox key.
 4. Pick any target language (source language is auto-detected).
 5. Return to the main screen, tap Start, allow the microphone prompt.
-6. Speak toward the device (or play any speech audio). Live captions appear within a second or two.
+6. Speak toward the device (or play any speech audio). The translated text appears on screen within a second or two.
 
 If the review team would prefer we supply a temporary test key directly instead of creating one, please reply to this submission and we will provide one through the Resolution Center.
 
@@ -147,18 +147,17 @@ GitHub issues: https://github.com/phuc-nt/my-translator-mobile/issues
 
 ---
 
-## Screenshots (required — still TODO)
+## Screenshots (captured — ready to upload)
 
-App Store requires real screenshots at exact device sizes. Minimum: one set for iPhone 6.9" display (e.g. iPhone 16 Pro Max, 1320 × 2868 px). 1–10 images.
+Captured at the iPhone 6.9" spec (1320 × 2868 px), in `docs/app-store-screenshots/`. Upload all three into the iPhone 6.9" slot in App Store Connect.
 
-Suggested shots (portrait, the app is portrait-only):
+| File | Story |
+| --- | --- |
+| `01-live-translation-6.9.jpeg` | Main screen mid-session — dual panel, source + translated text. Upscaled from an app screenshot (slightly soft but readable). |
+| `02-settings-byok-6.9.png` | Settings — engine picker (Soniox), target language, both API keys configured. The BYOK story. Native simulator capture. |
+| `03-empty-state-6.9.png` | Empty Translate screen, "Tap Start to begin translating." Native simulator capture. |
 
-1. Main screen mid-session — dual panel showing source + translated text.
-2. Single-panel mode with large font (readability story).
-3. Settings screen — engine + target language picker (BYOK story).
-4. (optional) Empty state with the "Tap Start to begin" prompt.
-
-These must be captured from the running app on a correctly sized simulator or device. Not yet produced — generate before submitting. Can be done via an iOS simulator at the required resolution.
+Portrait only (app is portrait-locked). All meet the 6.9" requirement.
 
 ---
 
@@ -168,7 +167,7 @@ These must be captured from the running app on a correctly sized simulator or de
 - [ ] Age rating questionnaire completed (→ 4+)
 - [ ] Name, subtitle, description, keywords, promo text filled
 - [ ] Support + Privacy Policy URLs set
-- [ ] Screenshots uploaded (6.9" set minimum) — **blocked: not yet captured**
+- [ ] Screenshots uploaded (6.9" set, 3 images ready in `docs/app-store-screenshots/`)
 - [ ] Build selected in Distribution tab (reuse the TestFlight `.ipa`)
 - [ ] Review Notes pasted (the BYOK explanation + Soniox test steps)
 - [ ] Export compliance answered (exempt)
@@ -187,5 +186,5 @@ These must be captured from the running app on a correctly sized simulator or de
 
 ## Unresolved
 
-- Screenshots not yet captured — hard blocker for submission. Need to run the app on a 6.9" simulator and capture 3–4 portrait shots.
 - Whether to proactively supply a reviewer key vs. wait for them to ask (current choice: instruct them to self-serve a free Soniox key; revisit if rejected on 2.1).
+- `01-live-translation-6.9.jpeg` is upscaled (slightly soft). Acceptable for submission; could be replaced with a native-resolution capture during a real session later.
