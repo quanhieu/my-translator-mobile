@@ -25,7 +25,7 @@ A lightweight stand-in for a human cabin (booth) interpreter when there isn't on
 ### Android — APK
 
 1. Open the **[latest release](https://github.com/phuc-nt/my-translator-mobile/releases/latest)** on your phone and download the `.apk`
-   ([direct download](https://github.com/phuc-nt/my-translator-mobile/releases/download/v0.1.0-android/my-translator-0.1.0.apk)).
+   ([direct download](https://github.com/phuc-nt/my-translator-mobile/releases/download/v0.1.1-android/my-translator-0.1.0.apk)).
 2. Allow your browser to "install unknown apps" when prompted.
 3. Open the file → **Install** (tap **Install anyway** if Play Protect warns).
 
