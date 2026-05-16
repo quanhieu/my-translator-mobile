@@ -1,3 +1,4 @@
+import * as Clipboard from "expo-clipboard";
 import { Link, router } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, Share, Text, View } from "react-native";
@@ -37,6 +38,14 @@ export default function TranslateScreen() {
       await Share.share({ message: formatTranscript(rows) });
     } catch {
       /* user dismissed or share unavailable */
+    }
+  };
+
+  const onCopy = async () => {
+    try {
+      await Clipboard.setStringAsync(formatTranscript(rows));
+    } catch {
+      /* clipboard unavailable */
     }
   };
 
@@ -80,6 +89,17 @@ export default function TranslateScreen() {
             }
           >
             <Text className="text-zinc-700 dark:text-zinc-300 text-xs">Clear</Text>
+          </Pressable>
+          <Pressable
+            onPress={onCopy}
+            disabled={!canShare}
+            className={
+              !canShare
+                ? "px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 opacity-50"
+                : "px-2 py-1 rounded-md border border-zinc-300 dark:border-zinc-700"
+            }
+          >
+            <Text className="text-zinc-700 dark:text-zinc-300 text-xs">Copy</Text>
           </Pressable>
           <Pressable
             onPress={onShare}
