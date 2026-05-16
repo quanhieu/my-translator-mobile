@@ -90,7 +90,9 @@ npx expo start --dev-client
 ```
 
 See [docs/react-native-dev-vs-production.md](docs/react-native-dev-vs-production.md)
-for how the dev client / Metro / production builds differ.
+for how the dev client / Metro / production builds differ, and
+[docs/eas-update-guide.md](docs/eas-update-guide.md) for shipping OTA
+(over-the-air) JS updates without a rebuild.
 
 ### Build & ship
 

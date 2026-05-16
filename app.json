@@ -62,6 +62,12 @@
         "projectId": "260fa91a-49c1-44ae-b96a-f3de65e64e1f"
       }
     },
-    "owner": "phuc-nt"
+    "owner": "phuc-nt",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/260fa91a-49c1-44ae-b96a-f3de65e64e1f"
+    }
   }
 }
