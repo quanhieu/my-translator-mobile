@@ -1,10 +1,11 @@
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useEffect } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 
+import { SessionSummary } from "@/src/components/session-summary";
 import { TranscriptStream } from "@/src/components/transcript-stream";
+import { formatTranscript } from "@/src/lib/transcript-format";
 import { useSession } from "@/src/state/session-context";
 import { useSettings } from "@/src/state/settings-context";
 
@@ -29,6 +30,15 @@ export default function TranslateScreen() {
 
   const isLive = status === "streaming" || status === "connecting";
   const requiredKey = engine === "soniox" ? sonioxKey : openaiKey;
+  const canShare = rows.length > 0 && !isLive;
+
+  const onShare = async () => {
+    try {
+      await Share.share({ message: formatTranscript(rows) });
+    } catch {
+      /* user dismissed or share unavailable */
+    }
+  };
 
   // First-launch: if settings are loaded and the active engine has no key,
   // bounce the user to Settings so they can paste one before anything else.
@@ -71,6 +81,17 @@ export default function TranslateScreen() {
           >
             <Text className="text-zinc-700 dark:text-zinc-300 text-xs">Clear</Text>
           </Pressable>
+          <Pressable
+            onPress={onShare}
+            disabled={!canShare}
+            className={
+              !canShare
+                ? "px-2 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 opacity-50"
+                : "px-2 py-1 rounded-md border border-zinc-300 dark:border-zinc-700"
+            }
+          >
+            <Text className="text-zinc-700 dark:text-zinc-300 text-xs">Share</Text>
+          </Pressable>
         </View>
 
         <View className="flex-row items-center gap-2">
@@ -109,6 +130,10 @@ export default function TranslateScreen() {
       ) : (
         <TranscriptStream rows={rows} fontSize={fontSize} panelMode={panelMode} />
       )}
+
+      {status === "idle" && rows.some((r) => !r.isProvisional && r.translation) ? (
+        <SessionSummary />
+      ) : null}
 
       <View className="px-4 py-4 border-t border-zinc-200 dark:border-zinc-800">
         <Pressable
@@ -173,6 +198,11 @@ function Header({
             <Text className="text-2xl">{muted ? "🔇" : "🔊"}</Text>
           </Pressable>
         ) : null}
+        <Link href="/history" asChild>
+          <Pressable hitSlop={8}>
+            <Text className="text-zinc-900 dark:text-zinc-100 text-2xl">🕘</Text>
+          </Pressable>
+        </Link>
         <Link href="/settings" asChild>
           <Pressable hitSlop={8}>
             <Text className="text-zinc-900 dark:text-zinc-100 text-2xl">⚙️</Text>

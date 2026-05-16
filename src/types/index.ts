@@ -18,3 +18,17 @@ export interface TranscriptRow {
   isProvisional?: boolean;
   timestamp: number;
 }
+
+export interface SessionMeta {
+  id: string;
+  createdAt: number;
+  engine: Engine;
+  targetLang: LangCode;
+  rowCount: number;
+  preview: string;
+}
+
+export interface SavedSession {
+  meta: SessionMeta;
+  rows: TranscriptRow[];
+}

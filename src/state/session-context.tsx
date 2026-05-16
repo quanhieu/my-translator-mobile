@@ -14,7 +14,8 @@ import {
 import { SonioxClient, type SonioxStatus } from "@/src/engines/soniox-client";
 import { AudioCapture } from "@/src/lib/audio-capture";
 import { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue";
-import type { SessionStatus, TranscriptRow } from "@/src/types";
+import { saveSession } from "@/src/lib/history-store";
+import type { SessionMeta, SessionStatus, TranscriptRow } from "@/src/types";
 import { useSettings } from "@/src/state/settings-context";
 
 interface SessionState {
@@ -332,6 +333,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const stop = async () => {
     setStatus("stopping");
     await cleanup();
+
+    // Persist the just-finished session. cleanup() has promoted provisional
+    // rows to final, so rowsRef.current is the correct snapshot. Fire-and-
+    // forget so the UI returns to idle without waiting on storage.
+    const finals = rowsRef.current.filter(
+      (r) => !r.isProvisional && r.translation,
+    );
+    if (finals.length > 0) {
+      const meta: SessionMeta = {
+        id: `sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        createdAt: Date.now(),
+        engine,
+        targetLang,
+        rowCount: finals.length,
+        preview: "",
+      };
+      saveSession(meta, finals).catch(() => {});
+    }
+
     setStatus("idle");
   };
 

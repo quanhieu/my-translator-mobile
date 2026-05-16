@@ -21,6 +21,7 @@ export default function RootLayout() {
                 name="settings"
                 options={{ presentation: "modal", headerShown: true, title: "Settings" }}
               />
+              <Stack.Screen name="history" options={{ title: "History" }} />
             </Stack>
           </SessionProvider>
         </SettingsProvider>
