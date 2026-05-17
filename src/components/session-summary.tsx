@@ -6,16 +6,32 @@ import { summarizeTranscript } from "@/src/lib/openai-summary";
 import { formatTranscript } from "@/src/lib/transcript-format";
 import { useSession } from "@/src/state/session-context";
 import { useSettings } from "@/src/state/settings-context";
+import type { TranscriptRow } from "@/src/types";
 
-export function SessionSummary() {
-  const { rows } = useSession();
+// Reusable summary UI. `rows` is the source transcript (caller-provided so it
+// works on both the live screen and the History detail view). `initialSummary`
+// pre-fills a previously persisted summary; `onSaved` fires when a fresh
+// summary is generated so the caller can persist it.
+export function SummaryPanel({
+  rows,
+  initialSummary,
+  onSaved,
+}: {
+  rows: TranscriptRow[];
+  initialSummary?: string;
+  onSaved?: (text: string) => void;
+}) {
   const { openaiKey, targetLang } = useSettings();
 
   const [loading, setLoading] = useState(false);
-  const [summary, setSummary] = useState<string | null>(null);
+  const [summary, setSummary] = useState<string | null>(
+    initialSummary ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
 
-  if (!openaiKey) {
+  // No key and nothing saved → guide the user. If a saved summary exists we
+  // still show it read-only even without a key.
+  if (!openaiKey && !summary) {
     return (
       <View className="px-4 pt-2">
         <Text className="text-zinc-500 dark:text-zinc-400 text-xs">
@@ -40,6 +56,7 @@ export function SessionSummary() {
         targetLang,
       });
       setSummary(text);
+      onSaved?.(text);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -49,23 +66,25 @@ export function SessionSummary() {
 
   return (
     <View className="px-4 pt-2">
-      <Pressable
-        onPress={run}
-        disabled={loading}
-        className={
-          loading
-            ? "h-10 rounded-xl items-center justify-center border border-zinc-300 dark:border-zinc-700 opacity-50"
-            : "h-10 rounded-xl items-center justify-center border border-zinc-300 dark:border-zinc-700 active:opacity-70"
-        }
-      >
-        {loading ? (
-          <ActivityIndicator />
-        ) : (
-          <Text className="text-zinc-900 dark:text-zinc-100 text-sm font-medium">
-            {summary ? "Summarize again" : "Summarize"}
-          </Text>
-        )}
-      </Pressable>
+      {openaiKey ? (
+        <Pressable
+          onPress={run}
+          disabled={loading}
+          className={
+            loading
+              ? "h-10 rounded-xl items-center justify-center border border-zinc-300 dark:border-zinc-700 opacity-50"
+              : "h-10 rounded-xl items-center justify-center border border-zinc-300 dark:border-zinc-700 active:opacity-70"
+          }
+        >
+          {loading ? (
+            <ActivityIndicator />
+          ) : (
+            <Text className="text-zinc-900 dark:text-zinc-100 text-sm font-medium">
+              {summary ? "Summarize again" : "Summarize"}
+            </Text>
+          )}
+        </Pressable>
+      ) : null}
 
       {error ? (
         <Text className="text-red-600 dark:text-red-400 text-xs mt-2">
@@ -85,4 +104,11 @@ export function SessionSummary() {
       ) : null}
     </View>
   );
+}
+
+// Live-screen wrapper: preserves the original behavior (rows from the active
+// session, no persistence).
+export function SessionSummary() {
+  const { rows } = useSession();
+  return <SummaryPanel rows={rows} />;
 }

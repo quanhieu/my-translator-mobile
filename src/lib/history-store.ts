@@ -1,35 +1,18 @@
 import * as SecureStore from "expo-secure-store";
 
+import {
+  MAX_SESSIONS,
+  MAX_SUMMARY_CHARS,
+  PREVIEW_CHARS,
+  type Blob,
+  normalizeBlob,
+  sanitizeRows,
+  trimField,
+} from "@/src/lib/history-blob";
 import type { SavedSession, SessionMeta, TranscriptRow } from "@/src/types";
-
-// Caps keep each Keychain value well under the OS per-item ceiling. We persist
-// only finals (no provisional), newest rows win, and long fields are trimmed.
-const MAX_SESSIONS = 20;
-const MAX_ROWS_PERSIST = 120;
-const MAX_FIELD_CHARS = 600;
-const PREVIEW_CHARS = 80;
 
 const INDEX_KEY = "history.index";
 const sessionKey = (id: string) => `history.session.${id}`;
-
-function trimField(v: string | undefined): string | undefined {
-  if (v == null) return undefined;
-  return v.length > MAX_FIELD_CHARS ? v.slice(0, MAX_FIELD_CHARS) : v;
-}
-
-function sanitizeRows(rows: TranscriptRow[]): TranscriptRow[] {
-  const finals = rows.filter((r) => !r.isProvisional && r.translation);
-  const recent =
-    finals.length > MAX_ROWS_PERSIST
-      ? finals.slice(finals.length - MAX_ROWS_PERSIST)
-      : finals;
-  return recent.map((r) => ({
-    id: r.id,
-    source: trimField(r.source),
-    translation: trimField(r.translation) ?? "",
-    timestamp: r.timestamp,
-  }));
-}
 
 async function readIndex(): Promise<SessionMeta[]> {
   try {
@@ -80,7 +63,7 @@ export async function saveSession(
       try {
         await SecureStore.setItemAsync(
           sessionKey(meta.id),
-          JSON.stringify(sanitized),
+          JSON.stringify({ rows: sanitized } satisfies Blob),
         );
         return true;
       } catch {
@@ -119,11 +102,48 @@ export async function getSession(id: string): Promise<SavedSession | null> {
   try {
     const raw = await SecureStore.getItemAsync(sessionKey(id));
     if (!raw) return null;
-    const rows = JSON.parse(raw);
-    if (!Array.isArray(rows)) return null;
-    return { meta, rows: rows as TranscriptRow[] };
+    const blob = normalizeBlob(JSON.parse(raw));
+    if (!blob) return null;
+    return { meta, rows: blob.rows, summary: blob.summary };
   } catch {
     return null;
+  }
+}
+
+// Update only the index entry's name. Empty/whitespace clears it. Never throws.
+export async function renameSession(
+  id: string,
+  name: string,
+): Promise<boolean> {
+  try {
+    const index = await readIndex();
+    const trimmed = trimField(name.trim()) || undefined;
+    const next = index.map((m) => (m.id === id ? { ...m, name: trimmed } : m));
+    return writeIndex(next);
+  } catch {
+    return false;
+  }
+}
+
+// Persist a generated summary alongside the session's rows. Returns false if
+// the session blob is missing or cannot be written. Never throws.
+export async function saveSummary(
+  id: string,
+  summary: string,
+): Promise<boolean> {
+  try {
+    const raw = await SecureStore.getItemAsync(sessionKey(id));
+    if (!raw) return false;
+    const blob = normalizeBlob(JSON.parse(raw));
+    if (!blob) return false;
+    blob.summary = summary.slice(0, MAX_SUMMARY_CHARS);
+    await SecureStore.setItemAsync(
+      sessionKey(id),
+      JSON.stringify(blob satisfies Blob),
+    );
+    return true;
+  } catch {
+    return false;
   }
 }
 

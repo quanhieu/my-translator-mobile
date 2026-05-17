@@ -26,9 +26,11 @@ export interface SessionMeta {
   targetLang: LangCode;
   rowCount: number;
   preview: string;
+  name?: string;
 }
 
 export interface SavedSession {
   meta: SessionMeta;
   rows: TranscriptRow[];
+  summary?: string;
 }

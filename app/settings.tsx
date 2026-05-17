@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { SettingsFooter } from "@/src/components/settings-footer";
 import { OPENAI_LANGS, type Language } from "@/src/lib/languages";
 import { clearAllPrefs, clearAllSecureKeys } from "@/src/lib/secure-keys";
 import { useSettings } from "@/src/state/settings-context";
@@ -124,6 +125,8 @@ export default function SettingsScreen() {
             Clear all data
           </Text>
         </Pressable>
+
+        <SettingsFooter />
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

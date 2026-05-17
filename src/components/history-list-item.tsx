@@ -29,7 +29,7 @@ export function HistoryListItem({
           numberOfLines={1}
           className="text-zinc-900 dark:text-zinc-100 text-base"
         >
-          {meta.preview || "(no text)"}
+          {meta.name || meta.preview || "(no text)"}
         </Text>
         <Text className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
           {formatWhen(meta.createdAt)} · {meta.engine === "soniox" ? "Soniox" : "OpenAI"} ·{" "}
