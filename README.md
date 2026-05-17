@@ -25,7 +25,7 @@ A lightweight stand-in for a human cabin (booth) interpreter when there isn't on
 ### Android — APK
 
 1. Open the **[latest release](https://github.com/phuc-nt/my-translator-mobile/releases/latest)** on your phone and download the `.apk`
-   ([direct download](https://github.com/phuc-nt/my-translator-mobile/releases/download/v0.1.1-android/my-translator-0.1.0.apk)).
+   ([direct download](https://github.com/phuc-nt/my-translator-mobile/releases/download/v0.2.0-android/my-translator-0.2.0.apk)).
 2. Allow your browser to "install unknown apps" when prompted.
 3. Open the file → **Install** (tap **Install anyway** if Play Protect warns).
 
@@ -43,7 +43,11 @@ A lightweight stand-in for a human cabin (booth) interpreter when there isn't on
 4. Back on the main screen, tap **Start**, allow the microphone, and listen.
 5. On OpenAI: tap 🔇 in the header to unmute voice output.
 
-> Your key stays in the device's secure keychain. Audio goes **straight to the provider you chose** — no backend, no tracking, no transcript history. See [PRIVACY.md](PRIVACY.md).
+After **Stop** you can **Copy** / **Share** the transcript, or **Summarize** the
+session with OpenAI (needs an OpenAI key — works even after a Soniox session).
+Finished sessions are saved on-device; review them under 🕘 in the header.
+
+> Your key stays in the device's secure keychain. Audio goes **straight to the provider you chose** — no backend, no tracking. Session history is stored **only on your device** and never leaves it. See [PRIVACY.md](PRIVACY.md).
 
 ---
 
