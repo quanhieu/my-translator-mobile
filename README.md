@@ -24,8 +24,7 @@ A lightweight stand-in for a human cabin (booth) interpreter when there isn't on
 
 ### Android — APK
 
-1. Open the **[latest release](https://github.com/phuc-nt/my-translator-mobile/releases/latest)** on your phone and download the `.apk`
-   ([direct download](https://github.com/phuc-nt/my-translator-mobile/releases/download/v0.2.0-android/my-translator-0.2.0.apk)).
+1. Open the **[latest release](https://github.com/phuc-nt/my-translator-mobile/releases/latest)** on your phone and download the `.apk`.
 2. Allow your browser to "install unknown apps" when prompted.
 3. Open the file → **Install** (tap **Install anyway** if Play Protect warns).
 
@@ -45,7 +44,11 @@ A lightweight stand-in for a human cabin (booth) interpreter when there isn't on
 
 After **Stop** you can **Copy** / **Share** the transcript, or **Summarize** the
 session with OpenAI (needs an OpenAI key — works even after a Soniox session).
-Finished sessions are saved on-device; review them under 🕘 in the header.
+Finished sessions are saved on-device; review them under 🕘 in the header. Each
+saved session can be searched, **Exported** as a Markdown file (also kept under
+**Saved files**), and is **auto-named** by OpenAI when a key is set. The screen
+stays awake while translating, and **Settings → Check for updates** pulls the
+latest over-the-air JS bundle.
 
 > Your key stays in the device's secure keychain. Audio goes **straight to the provider you chose** — no backend, no tracking. Session history is stored **only on your device** and never leaves it. See [PRIVACY.md](PRIVACY.md).
 
@@ -82,7 +85,9 @@ Source language is auto-detected — you only pick a target.
 ### Stack
 
 Expo SDK 54 · React Native 0.81 · TypeScript · Expo Router v4 · NativeWind v4 ·
-`react-native-audio-api` (mic + PCM playback) · `expo-secure-store` (keys).
+`react-native-audio-api` (mic + PCM playback) · `expo-secure-store` (keys) ·
+`expo-file-system` + `expo-sharing` (Markdown export) · `expo-keep-awake` ·
+`expo-haptics` · `expo-updates` (in-app OTA check).
 Distribution: EAS Build → TestFlight (iOS) + APK on GitHub Release (Android).
 
 ### Develop
@@ -118,11 +123,12 @@ eas build --profile production --platform android
 ### Layout
 
 ```
-app/        Expo Router screens (index = translate, settings)
+app/        Expo Router screens (index = translate, settings, history, exports)
 src/
   engines/    soniox-client.ts, openai-realtime-client.ts
-  lib/        audio-capture, audio-output-queue, secure-keys, languages
-  components/ transcript-stream.tsx
+  lib/        audio-capture, audio-output-queue, secure-keys, languages,
+              history-store, session-export, haptics, ota-update
+  components/ transcript-stream.tsx, session-detail-view, icon-button
   state/      Settings + Session contexts
 ```
 
