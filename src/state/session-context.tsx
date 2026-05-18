@@ -12,9 +12,15 @@ import {
   type OpenAiStatus,
 } from "@/src/engines/openai-realtime-client";
 import { SonioxClient, type SonioxStatus } from "@/src/engines/soniox-client";
+import {
+  activateKeepAwakeAsync,
+  deactivateKeepAwake,
+} from "expo-keep-awake";
+
 import { AudioCapture } from "@/src/lib/audio-capture";
+import { hapticError, hapticStart, hapticStop } from "@/src/lib/haptics";
 import { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue";
-import { saveSession } from "@/src/lib/history-store";
+import { autoNameSession, saveSession } from "@/src/lib/history-store";
 import type { SessionMeta, SessionStatus, TranscriptRow } from "@/src/types";
 import { useSettings } from "@/src/state/settings-context";
 
@@ -42,7 +48,8 @@ const SessionContext = createContext<
 const MAX_ROWS = 200;
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { engine, sonioxKey, openaiKey, sourceLang, targetLang } = useSettings();
+  const { engine, sonioxKey, openaiKey, sourceLang, targetLang, chatModel } =
+    useSettings();
 
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [rows, setRows] = useState<TranscriptRow[]>([]);
@@ -326,11 +333,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const start = async () => {
     if (status === "streaming" || status === "connecting") return;
     setErrorMessage(null);
+    hapticStart();
     if (engine === "soniox") await startSoniox();
     else await startOpenAi();
   };
 
   const stop = async () => {
+    hapticStop();
     setStatus("stopping");
     await cleanup();
 
@@ -349,7 +358,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         rowCount: finals.length,
         preview: "",
       };
-      saveSession(meta, finals).catch(() => {});
+      // Persist, then best-effort LLM auto-name. Both off the UI path: stop()
+      // returns to idle immediately regardless of storage/network outcome.
+      saveSession(meta, finals)
+        .then((ok) => {
+          if (ok && openaiKey) {
+            autoNameSession(meta.id, openaiKey, chatModel, targetLang).catch(
+              () => {},
+            );
+          }
+        })
+        .catch(() => {});
     }
 
     setStatus("idle");
@@ -367,6 +386,25 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     openaiRef.current?.setMuted(m);
     outputQueueRef.current?.setMuted(m);
   };
+
+  // Keep the screen on for the whole live session (long meetings would
+  // otherwise auto-lock mid-translation). Released the moment we leave an
+  // active state, and on unmount.
+  useEffect(() => {
+    const active =
+      status === "connecting" ||
+      status === "streaming" ||
+      status === "stopping";
+    if (active) {
+      activateKeepAwakeAsync("translate-session").catch(() => {});
+    } else {
+      deactivateKeepAwake("translate-session").catch(() => {});
+    }
+    if (status === "error") hapticError();
+    return () => {
+      deactivateKeepAwake("translate-session").catch(() => {});
+    };
+  }, [status]);
 
   useEffect(() => {
     return () => {

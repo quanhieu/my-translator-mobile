@@ -95,13 +95,20 @@ export default function HistoryScreen() {
             History
           </Text>
         </View>
-        {metas.length > 0 ? (
-          <Pressable onPress={confirmClearAll} hitSlop={8}>
-            <Text className="text-red-600 dark:text-red-400 text-sm">
-              Clear all
+        <View className="flex-row items-center gap-4">
+          <Pressable onPress={() => router.push("/exports")} hitSlop={8}>
+            <Text className="text-zinc-900 dark:text-zinc-100 text-sm">
+              Saved files
             </Text>
           </Pressable>
-        ) : null}
+          {metas.length > 0 ? (
+            <Pressable onPress={confirmClearAll} hitSlop={8}>
+              <Text className="text-red-600 dark:text-red-400 text-sm">
+                Clear all
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
       </View>
 
       {metas.length === 0 ? (

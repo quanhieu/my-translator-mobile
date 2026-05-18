@@ -1,9 +1,10 @@
 import * as Clipboard from "expo-clipboard";
-import { Link, router } from "expo-router";
+import { router } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, Share, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { IconButton } from "@/src/components/icon-button";
 import { SessionSummary } from "@/src/components/session-summary";
 import { TranscriptStream } from "@/src/components/transcript-stream";
 import { formatTranscript } from "@/src/lib/transcript-format";
@@ -212,22 +213,24 @@ function Header({
           {engine === "soniox" ? "Soniox" : "OpenAI"} · auto → {targetLang}
         </Text>
       </View>
-      <View className="flex-row items-center gap-3">
+      <View className="flex-row items-center gap-2">
         {showMute ? (
-          <Pressable onPress={onToggleMute} hitSlop={8}>
-            <Text className="text-2xl">{muted ? "🔇" : "🔊"}</Text>
-          </Pressable>
+          <IconButton
+            glyph={muted ? "🔇" : "🔊"}
+            label={muted ? "Unmute" : "Mute"}
+            onPress={onToggleMute}
+          />
         ) : null}
-        <Link href="/history" asChild>
-          <Pressable hitSlop={8}>
-            <Text className="text-zinc-900 dark:text-zinc-100 text-2xl">🕘</Text>
-          </Pressable>
-        </Link>
-        <Link href="/settings" asChild>
-          <Pressable hitSlop={8}>
-            <Text className="text-zinc-900 dark:text-zinc-100 text-2xl">⚙️</Text>
-          </Pressable>
-        </Link>
+        <IconButton
+          glyph="🕘"
+          label="History"
+          onPress={() => router.push("/history")}
+        />
+        <IconButton
+          glyph="⚙️"
+          label="Settings"
+          onPress={() => router.push("/settings")}
+        />
       </View>
     </View>
   );

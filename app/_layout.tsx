@@ -19,6 +19,7 @@ export default function RootLayout() {
               <Stack.Screen name="index" />
               <Stack.Screen name="settings" options={{ title: "Settings" }} />
               <Stack.Screen name="history" options={{ title: "History" }} />
+              <Stack.Screen name="exports" options={{ title: "Saved files" }} />
             </Stack>
           </SessionProvider>
         </SettingsProvider>

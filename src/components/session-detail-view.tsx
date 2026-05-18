@@ -10,6 +10,10 @@ import { DetailTranscriptTab } from "@/src/components/detail-transcript-tab";
 import { RenameSessionModal } from "@/src/components/rename-session-modal";
 import { renameSession, saveSummary } from "@/src/lib/history-store";
 import { suggestSessionTitle } from "@/src/lib/openai-chat";
+import {
+  exportSessionMarkdown,
+  saveSessionToDocuments,
+} from "@/src/lib/session-export";
 import { formatTranscript } from "@/src/lib/transcript-format";
 import { useSettings } from "@/src/state/settings-context";
 import type { SavedSession } from "@/src/types";
@@ -57,6 +61,13 @@ export function SessionDetailView({
     } finally {
       setAutoNaming(false);
     }
+  };
+
+  const onExport = async () => {
+    const payload = { ...session, meta: { ...session.meta, name }, summary };
+    // Persist a copy to the in-app exports folder, then offer the share sheet.
+    await saveSessionToDocuments(payload);
+    await exportSessionMarkdown(payload);
   };
 
   const onSummarySaved = async (text: string) => {
@@ -108,6 +119,14 @@ export function SessionDetailView({
         >
           <Text className="text-zinc-900 dark:text-zinc-100 text-sm">
             Rename
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onExport}
+          className="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 active:opacity-70"
+        >
+          <Text className="text-zinc-900 dark:text-zinc-100 text-sm">
+            Export
           </Text>
         </Pressable>
       </View>

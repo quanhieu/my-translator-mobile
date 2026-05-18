@@ -10,6 +10,8 @@ import {
   sanitizeRows,
   trimField,
 } from "@/src/lib/history-blob";
+import { suggestSessionTitle } from "@/src/lib/openai-chat";
+import { formatTranscript } from "@/src/lib/transcript-format";
 import type {
   ChatMessage,
   SavedSession,
@@ -177,6 +179,38 @@ export async function saveChat(
     return true;
   } catch {
     return false;
+  }
+}
+
+// Best-effort LLM auto-name for a freshly saved session. No-op if the session
+// is missing, already named, or the title call fails. Never throws — designed
+// to be fire-and-forget off the stop() path so it never blocks the UI.
+export async function autoNameSession(
+  id: string,
+  apiKey: string,
+  model: string,
+  targetLang: string,
+): Promise<void> {
+  try {
+    if (!apiKey) return;
+    const index = await readIndex();
+    const meta = index.find((m) => m.id === id);
+    if (!meta || (meta.name && meta.name.trim())) return;
+
+    const raw = await SecureStore.getItemAsync(sessionKey(id));
+    if (!raw) return;
+    const blob = normalizeBlob(JSON.parse(raw));
+    if (!blob) return;
+
+    const title = await suggestSessionTitle({
+      apiKey,
+      text: formatTranscript(blob.rows),
+      targetLang,
+      model,
+    });
+    if (title) await renameSession(id, title);
+  } catch {
+    /* auto-name is best-effort; leave the session unnamed on any failure */
   }
 }
 

@@ -12,8 +12,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { router } from "expo-router";
 
+import { useState } from "react";
+
 import { BackButton } from "@/src/components/back-button";
 import { SettingsFooter } from "@/src/components/settings-footer";
+import { type UpdateResult, checkAndApplyUpdate } from "@/src/lib/ota-update";
 import { OPENAI_LANGS, type Language } from "@/src/lib/languages";
 import { clearAllPrefs, clearAllSecureKeys } from "@/src/lib/secure-keys";
 import { useSettings } from "@/src/state/settings-context";
@@ -136,6 +139,10 @@ export default function SettingsScreen() {
           </Section>
         ) : null}
 
+        <Section title="App updates">
+          <UpdateRow />
+        </Section>
+
         <Pressable
           onPress={() => {
             Alert.alert(
@@ -166,6 +173,42 @@ export default function SettingsScreen() {
       </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
+  );
+}
+
+const UPDATE_LABEL: Record<UpdateResult, string> = {
+  checking: "Checking…",
+  downloading: "Updating…",
+  "up-to-date": "You're up to date",
+  unsupported: "Not available in this build",
+  error: "Check failed — try again",
+};
+
+function UpdateRow() {
+  const [state, setState] = useState<UpdateResult | null>(null);
+  const busy = state === "checking" || state === "downloading";
+
+  return (
+    <View>
+      <Pressable
+        disabled={busy}
+        onPress={() => checkAndApplyUpdate(setState)}
+        className={
+          busy
+            ? "py-3 rounded-lg border border-zinc-200 dark:border-zinc-800 items-center opacity-50"
+            : "py-3 rounded-lg border border-zinc-300 dark:border-zinc-700 items-center active:opacity-70"
+        }
+      >
+        <Text className="text-zinc-900 dark:text-zinc-100 font-medium">
+          Check for updates
+        </Text>
+      </Pressable>
+      {state ? (
+        <Text className="text-zinc-500 text-xs mt-1">
+          {UPDATE_LABEL[state]}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
