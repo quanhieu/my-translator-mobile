@@ -41,3 +41,7 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Benchmark artifacts (local only)
+benchmark-realtime.cjs
+benchmark-result.json
