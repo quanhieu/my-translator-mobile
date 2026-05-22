@@ -1,4 +1,17 @@
-export type Engine = "soniox" | "openai";
+export type Engine = "soniox" | "openai" | "qwen";
+
+// Human-readable engine names — single source of truth for every UI surface
+// (header, settings, history). Add a new engine here and the UI follows.
+export const ENGINE_LABELS: Record<Engine, string> = {
+  soniox: "Soniox",
+  openai: "OpenAI",
+  qwen: "Qwen",
+};
+
+// Engines that produce spoken TTS output (and therefore show the mute toggle).
+export function engineHasVoice(engine: Engine): boolean {
+  return engine === "openai" || engine === "qwen";
+}
 
 export type LangCode = string;
 

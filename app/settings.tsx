@@ -30,11 +30,13 @@ export default function SettingsScreen() {
   const {
     sonioxKey,
     openaiKey,
+    qwenKey,
     engine,
     targetLang,
     chatModel,
     setSonioxKey,
     setOpenaiKey,
+    setQwenKey,
     setEngine,
     setTargetLang,
     setChatModel,
@@ -77,11 +79,18 @@ export default function SettingsScreen() {
               active={engine === "openai"}
               onPress={() => setEngine("openai")}
             />
+            <Choice
+              label="Qwen"
+              active={engine === "qwen"}
+              onPress={() => setEngine("qwen")}
+            />
           </Row>
           <Text className="text-zinc-500 text-xs mt-1">
             {engine === "soniox"
               ? "Soniox · ~$0.12/hr · text-only"
-              : "OpenAI Realtime · ~$4/hr · text + voice (phase 3)"}
+              : engine === "openai"
+                ? "OpenAI Realtime · ~$4/hr · text + voice"
+                : "Qwen-Omni Realtime · free preview · text + voice"}
           </Text>
         </Section>
 
@@ -121,6 +130,23 @@ export default function SettingsScreen() {
           </Text>
         </Section>
 
+        <Section title="Qwen (DashScope) API key">
+          <TextInput
+            value={qwenKey}
+            onChangeText={setQwenKey}
+            placeholder="sk-…"
+            placeholderTextColor="#9ca3af"
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+            className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
+          />
+          <Text className="text-zinc-500 text-xs mt-1">
+            Get a key at Alibaba Cloud Model Studio. Qwen-Omni Realtime is in a
+            free preview — pricing may change once it leaves preview.
+          </Text>
+        </Section>
+
         {openaiKey ? (
           <Section title="Assistant model">
             <Row>
@@ -157,6 +183,7 @@ export default function SettingsScreen() {
                     await Promise.all([clearAllSecureKeys(), clearAllPrefs()]);
                     setSonioxKey("");
                     setOpenaiKey("");
+                    setQwenKey("");
                   },
                 },
               ],

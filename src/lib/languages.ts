@@ -37,6 +37,10 @@ export const OPENAI_LANGS: Language[] = [
   { code: "zh", name: "Chinese" },
 ];
 
+// Qwen-Omni-Realtime supports many languages; reuse the OpenAI shortlist for a
+// consistent picker. Source is always auto-detected, so only the target matters.
+export const QWEN_LANGS: Language[] = OPENAI_LANGS;
+
 export function langName(code: string, list: Language[]): string {
   return list.find((l) => l.code === code)?.name ?? code;
 }

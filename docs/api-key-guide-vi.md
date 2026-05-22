@@ -1,15 +1,16 @@
 # Hướng dẫn lấy API key (Tiếng Việt)
 
-My Translator không có server riêng. Bạn tự tạo API key của Soniox hoặc OpenAI,
-dán vào app, và app gửi âm thanh thẳng tới nhà cung cấp đó. Key được lưu trong
-keychain bảo mật của máy, không gửi đi đâu khác.
+My Translator không có server riêng. Bạn tự tạo API key của Soniox, OpenAI
+hoặc Qwen, dán vào app, và app gửi âm thanh thẳng tới nhà cung cấp đó. Key được
+lưu trong keychain bảo mật của máy, không gửi đi đâu khác.
 
-Chỉ cần **một** trong hai key là dùng được.
+Chỉ cần **một** trong ba key là dùng được.
 
 | Nhà cung cấp | Giá tham khảo | Đầu ra | Gợi ý |
 | --- | --- | --- | --- |
 | **Soniox** | ~$0.12/giờ | Văn bản dịch trên màn hình | Rẻ, **nên dùng** |
 | **OpenAI Realtime** | ~$4/giờ | Văn bản + giọng nói (mặc định tắt) | Khi cần đọc thành tiếng |
+| **Qwen-Omni Realtime** | Bản xem trước miễn phí | Văn bản + giọng nói (mặc định tắt) | Đang miễn phí, giá có thể đổi |
 
 ---
 
@@ -42,6 +43,21 @@ Chỉ cần **một** trong hai key là dùng được.
 6. Mở app My Translator → màn hình **Settings** → dán key vào ô **OpenAI**.
 7. Trên màn hình chính, bấm biểu tượng 🔇 ở thanh tiêu đề để bật giọng đọc
    (mặc định đang tắt tiếng).
+
+---
+
+## 3. Qwen / DashScope (khi cần giọng nói, đang miễn phí)
+
+1. Mở <https://bailian.console.alibabacloud.com> (Alibaba Cloud Model Studio)
+   và đăng ký / đăng nhập tài khoản Alibaba Cloud.
+2. Kích hoạt dịch vụ **Model Studio (DashScope)** nếu được nhắc.
+3. Vào mục **API Keys**, bấm **Create API Key**, đặt tên bất kỳ.
+4. **Sao chép key ngay** — chỉ hiển thị đầy đủ một lần.
+5. Mở app My Translator → màn hình **Settings** → dán key vào ô **Qwen (DashScope)**.
+6. Trên màn hình chính, bấm biểu tượng 🔇 ở thanh tiêu đề để bật giọng đọc.
+
+> Qwen-Omni Realtime hiện ở giai đoạn **xem trước (preview)** và miễn phí gọi
+> mô hình. Giá có thể thay đổi khi rời preview — theo dõi thông báo của Alibaba Cloud.
 
 ---
 

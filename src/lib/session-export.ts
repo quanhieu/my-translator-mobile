@@ -2,7 +2,7 @@ import { Directory, File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
 
 import { formatTranscript } from "@/src/lib/transcript-format";
-import type { SavedSession } from "@/src/types";
+import { ENGINE_LABELS, type SavedSession } from "@/src/types";
 
 // Filesystem-safe slug from a session name (or a stable fallback).
 function fileSlug(s: SavedSession): string {
@@ -21,7 +21,7 @@ export function renderSessionMarkdown(s: SavedSession): string {
     `# ${s.meta.name || "Session"}`,
     "",
     `- Date: ${date}`,
-    `- Engine: ${s.meta.engine}`,
+    `- Engine: ${ENGINE_LABELS[s.meta.engine]}`,
     `- Target language: ${s.meta.targetLang}`,
     `- Lines: ${s.meta.rowCount}`,
     "",

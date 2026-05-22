@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 
-import type { SessionMeta } from "@/src/types";
+import { ENGINE_LABELS, type SessionMeta } from "@/src/types";
 
 function formatWhen(ts: number): string {
   const d = new Date(ts);
@@ -32,7 +32,7 @@ export function HistoryListItem({
           {meta.name || meta.preview || "(no text)"}
         </Text>
         <Text className="text-zinc-500 dark:text-zinc-400 text-xs mt-1">
-          {formatWhen(meta.createdAt)} · {meta.engine === "soniox" ? "Soniox" : "OpenAI"} ·{" "}
+          {formatWhen(meta.createdAt)} · {ENGINE_LABELS[meta.engine]} ·{" "}
           {meta.rowCount} lines
         </Text>
       </View>

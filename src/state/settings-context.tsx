@@ -18,6 +18,7 @@ import type { Engine, LangCode, PanelMode } from "@/src/types";
 interface SettingsState {
   sonioxKey: string;
   openaiKey: string;
+  qwenKey: string;
   engine: Engine;
   sourceLang: LangCode;
   targetLang: LangCode;
@@ -30,6 +31,7 @@ interface SettingsState {
 interface SettingsActions {
   setSonioxKey: (v: string) => Promise<void>;
   setOpenaiKey: (v: string) => Promise<void>;
+  setQwenKey: (v: string) => Promise<void>;
   setEngine: (v: Engine) => void;
   setTargetLang: (v: LangCode) => void;
   setPanelMode: (v: PanelMode) => void;
@@ -40,6 +42,7 @@ interface SettingsActions {
 const DEFAULT_STATE: SettingsState = {
   sonioxKey: "",
   openaiKey: "",
+  qwenKey: "",
   engine: "soniox",
   // Source is always auto-detect — translation at live events shouldn't
   // require the speaker to declare their language up front. Both Soniox
@@ -62,6 +65,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       const [
         sonioxKey,
         openaiKey,
+        qwenKey,
         engine,
         targetLang,
         panelMode,
@@ -70,6 +74,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         getSecureKey("soniox"),
         getSecureKey("openai"),
+        getSecureKey("qwen"),
         getPref("engine"),
         getPref("targetLang"),
         getPref("panelMode"),
@@ -79,7 +84,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setState({
         sonioxKey: sonioxKey ?? "",
         openaiKey: openaiKey ?? "",
-        engine: engine === "openai" ? "openai" : "soniox",
+        qwenKey: qwenKey ?? "",
+        engine: engine === "openai" || engine === "qwen" ? engine : "soniox",
         sourceLang: "auto",
         targetLang: targetLang ?? DEFAULT_STATE.targetLang,
         panelMode: panelMode === "dual" ? "dual" : "single",
@@ -97,6 +103,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setOpenaiKey = async (v: string) => {
     await setSecureKey("openai", v);
     setState((s) => ({ ...s, openaiKey: v }));
+  };
+  const setQwenKey = async (v: string) => {
+    await setSecureKey("qwen", v);
+    setState((s) => ({ ...s, qwenKey: v }));
   };
   const setEngine = (v: Engine) => {
     setState((s) => ({ ...s, engine: v }));
@@ -125,6 +135,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         ...state,
         setSonioxKey,
         setOpenaiKey,
+        setQwenKey,
         setEngine,
         setTargetLang,
         setPanelMode,

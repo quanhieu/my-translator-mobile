@@ -36,6 +36,7 @@ A lightweight stand-in for a human cabin (booth) interpreter when there isn't on
 2. Paste **one** API key:
    - **Soniox** — get one at <https://console.soniox.com>. Cheap (~$0.12/hr), text only. **Recommended.**
    - **OpenAI** — get one at <https://platform.openai.com/api-keys>. ~$4/hr, adds spoken voice. Tip: set a low monthly cap.
+   - **Qwen** — get a DashScope key at <https://bailian.console.alibabacloud.com>. Adds spoken voice; currently a **free preview** (pricing may change once it leaves preview).
 
    Hướng dẫn chi tiết bằng tiếng Việt: [docs/api-key-guide-vi.md](docs/api-key-guide-vi.md)
 3. Pick your **target** language (the spoken language is auto-detected).
@@ -74,6 +75,7 @@ latest over-the-air JS bundle.
 | --- | --- | --- |
 | **Soniox** | ~$0.12/hr | On-screen translated text |
 | **OpenAI Realtime** | ~$4/hr | Text + optional spoken voice (muted by default) |
+| **Qwen-Omni Realtime** | Free preview | Text + optional spoken voice (muted by default) |
 
 Source language is auto-detected — you only pick a target.
 
@@ -125,7 +127,7 @@ eas build --profile production --platform android
 ```
 app/        Expo Router screens (index = translate, settings, history, exports)
 src/
-  engines/    soniox-client.ts, openai-realtime-client.ts
+  engines/    soniox-client.ts, openai-realtime-client.ts, qwen-realtime-client.ts
   lib/        audio-capture, audio-output-queue, secure-keys, languages,
               history-store, session-export, haptics, ota-update
   components/ transcript-stream.tsx, session-detail-view, icon-button

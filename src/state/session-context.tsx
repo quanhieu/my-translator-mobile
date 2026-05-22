@@ -11,6 +11,10 @@ import {
   OpenAiRealtimeClient,
   type OpenAiStatus,
 } from "@/src/engines/openai-realtime-client";
+import {
+  QwenRealtimeClient,
+  type QwenStatus,
+} from "@/src/engines/qwen-realtime-client";
 import { SonioxClient, type SonioxStatus } from "@/src/engines/soniox-client";
 import {
   activateKeepAwakeAsync,
@@ -21,6 +25,7 @@ import { AudioCapture } from "@/src/lib/audio-capture";
 import { hapticError, hapticStart, hapticStop } from "@/src/lib/haptics";
 import { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue";
 import { autoNameSession, saveSession } from "@/src/lib/history-store";
+import { QWEN_LANGS, langName } from "@/src/lib/languages";
 import type { SessionMeta, SessionStatus, TranscriptRow } from "@/src/types";
 import { useSettings } from "@/src/state/settings-context";
 
@@ -48,8 +53,15 @@ const SessionContext = createContext<
 const MAX_ROWS = 200;
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const { engine, sonioxKey, openaiKey, sourceLang, targetLang, chatModel } =
-    useSettings();
+  const {
+    engine,
+    sonioxKey,
+    openaiKey,
+    qwenKey,
+    sourceLang,
+    targetLang,
+    chatModel,
+  } = useSettings();
 
   const [status, setStatus] = useState<SessionStatus>("idle");
   const [rows, setRows] = useState<TranscriptRow[]>([]);
@@ -62,6 +74,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const captureRef = useRef<AudioCapture | null>(null);
   const sonioxRef = useRef<SonioxClient | null>(null);
   const openaiRef = useRef<OpenAiRealtimeClient | null>(null);
+  const qwenRef = useRef<QwenRealtimeClient | null>(null);
   const outputQueueRef = useRef<OpenAiAudioOutputQueue | null>(null);
 
   // The id of the in-progress provisional row, if any (cleared on final).
@@ -128,12 +141,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return "idle";
   };
 
+  const mapQwenStatus = (s: QwenStatus): SessionStatus => {
+    if (s === "connecting") return "connecting";
+    if (s === "ready") return "streaming";
+    if (s === "error") return "error";
+    return "idle";
+  };
+
   const cleanup = async () => {
     // Silence late callbacks BEFORE disconnect so events that arrive between
     // ws.close() and the OS actually tearing the socket down don't push
     // ghost provisional rows after the user already hit Stop.
     if (sonioxRef.current) sonioxRef.current.callbacks = {};
     if (openaiRef.current) openaiRef.current.callbacks = {};
+    if (qwenRef.current) qwenRef.current.callbacks = {};
 
     try {
       sonioxRef.current?.disconnect();
@@ -148,6 +169,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
     openaiRef.current = null;
+
+    try {
+      qwenRef.current?.disconnect();
+    } catch {
+      /* ignore */
+    }
+    qwenRef.current = null;
 
     try {
       await outputQueueRef.current?.close();
@@ -330,12 +358,89 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const startQwen = async (): Promise<void> => {
+    if (!qwenKey) {
+      setStatus("error");
+      setErrorMessage("Qwen API key missing — open Settings");
+      return;
+    }
+    setStatus("connecting");
+
+    // Qwen-Omni Realtime input is pcm16 @ 16kHz (output is 24kHz).
+    const capture = new AudioCapture(16000);
+    const granted = await capture.requestPermission();
+    if (!granted) {
+      setStatus("error");
+      setErrorMessage("Microphone permission denied");
+      return;
+    }
+
+    const queue = new OpenAiAudioOutputQueue();
+    const client = new QwenRealtimeClient({
+      onStatusChange: (s, msg) => {
+        setStatus(mapQwenStatus(s));
+        if (msg && s === "error") setErrorMessage(msg);
+      },
+      onError: (_code, message) => {
+        if (message) setErrorMessage(message);
+      },
+      onClosed: () => {
+        // onclose runs after disconnect() too — only surface unintended closes.
+      },
+      onSourceProvisional: (text) => {
+        const id = provisionalIdRef.current;
+        if (!id) return;
+        const next = rowsRef.current.map((r) =>
+          r.id === id ? { ...r, source: text } : r,
+        );
+        replaceRows(next);
+      },
+      onProvisional: (text) => upsertProvisional(text),
+      onSegment: (src, tgt) => {
+        finalizeProvisional();
+        if (!src && !tgt) return;
+        pushRow({
+          id: `seg-${Date.now()}`,
+          source: src || undefined,
+          translation: tgt,
+          timestamp: Date.now(),
+        });
+      },
+    });
+
+    qwenRef.current = client;
+    outputQueueRef.current = queue;
+    captureRef.current = capture;
+
+    try {
+      await capture.start((pcm) => client.sendAudio(pcm));
+    } catch (err) {
+      setStatus("error");
+      setErrorMessage((err as Error).message);
+      await cleanup();
+      return;
+    }
+
+    queue.setMuted(muted);
+    client.setMuted(muted);
+    client.connect(
+      {
+        apiKey: qwenKey,
+        targetLanguage: targetLang,
+        targetLanguageName: langName(targetLang, QWEN_LANGS),
+        audioOutput: !muted,
+      },
+      queue,
+    );
+  };
+
   const start = async () => {
     if (status === "streaming" || status === "connecting") return;
     setErrorMessage(null);
     hapticStart();
     if (engine === "soniox") await startSoniox();
-    else await startOpenAi();
+    else if (engine === "openai") await startOpenAi();
+    else await startQwen();
   };
 
   const stop = async () => {
@@ -384,6 +489,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const setMuted = (m: boolean) => {
     setMutedState(m);
     openaiRef.current?.setMuted(m);
+    qwenRef.current?.setMuted(m);
     outputQueueRef.current?.setMuted(m);
   };
 

@@ -10,6 +10,7 @@ import { TranscriptStream } from "@/src/components/transcript-stream";
 import { formatTranscript } from "@/src/lib/transcript-format";
 import { useSession } from "@/src/state/session-context";
 import { useSettings } from "@/src/state/settings-context";
+import { ENGINE_LABELS, type Engine, engineHasVoice } from "@/src/types";
 
 const FONT_MIN = 14;
 const FONT_MAX = 32;
@@ -25,13 +26,19 @@ export default function TranslateScreen() {
     panelMode,
     sonioxKey,
     openaiKey,
+    qwenKey,
     loaded,
     setFontSize,
     setPanelMode,
   } = useSettings();
 
   const isLive = status === "streaming" || status === "connecting";
-  const requiredKey = engine === "soniox" ? sonioxKey : openaiKey;
+  const requiredKey =
+    engine === "soniox"
+      ? sonioxKey
+      : engine === "openai"
+        ? openaiKey
+        : qwenKey;
   const canShare = rows.length > 0 && !isLive;
 
   const onShare = async () => {
@@ -65,7 +72,7 @@ export default function TranslateScreen() {
         sourceLang={sourceLang}
         targetLang={targetLang}
         status={status}
-        showMute={engine === "openai"}
+        showMute={engineHasVoice(engine)}
         muted={muted}
         onToggleMute={() => setMuted(!muted)}
       />
@@ -189,7 +196,7 @@ function Header({
   muted,
   onToggleMute,
 }: {
-  engine: string;
+  engine: Engine;
   sourceLang: string;
   targetLang: string;
   status: string;
@@ -210,7 +217,7 @@ function Header({
       <View className="flex-row items-center gap-2">
         <View className={dot} />
         <Text className="text-zinc-900 dark:text-zinc-100 font-medium">
-          {engine === "soniox" ? "Soniox" : "OpenAI"} · auto → {targetLang}
+          {ENGINE_LABELS[engine]} · auto → {targetLang}
         </Text>
       </View>
       <View className="flex-row items-center gap-2">

@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 const KEYS = {
   soniox: "apikey.soniox",
   openai: "apikey.openai",
+  qwen: "apikey.qwen",
 } as const;
 
 export type SecureKeyName = keyof typeof KEYS;
