@@ -8,11 +8,12 @@
  * mechanism the OpenAI client relies on (RN passes a 3rd-arg `{ headers }`).
  * Verify on a physical iOS device before shipping.
  *
- * Unlike OpenAI's dedicated /realtime/translations endpoint, Qwen-Omni is a
- * general omni model: translation is driven by an `instructions` system prompt,
- * source language is auto-detected by the STT layer. Server VAD auto-commits
- * the input buffer and auto-triggers a response, so the streaming flow matches
- * the OpenAI client (no manual commit / response.create).
+ * Turn control: server-VAD is DISABLED. Benchmarks showed Qwen's server-VAD
+ * silently drops ~33-80% of translated content. Instead we run client-side
+ * RMS-based silence detection and fire `input_audio_buffer.commit` +
+ * `response.create` ourselves at natural pauses (or at MAX_WINDOW_MS).
+ * Result: full coverage, ~2.3s first token, better pronoun continuity.
+ * See plans/reports/benchmark-260523-0701-qwen-coherence-improvement.md.
  *
  * Event mapping:
  *   conversation.item.input_audio_transcription.completed → onSourceProvisional / pendingSourceFinals
@@ -28,6 +29,15 @@ import type { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue
 
 const QWEN_REALTIME_URL =
   "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=qwen3.5-omni-plus-realtime";
+
+// Client-side RMS-VAD config — tuned on Hope-v2 benchmark (variant K).
+// SILENCE_RMS may need per-device calibration once we test on real mic.
+const SILENCE_RMS = 500; // int16 PCM amplitude
+const SILENCE_MS = 400; // sustained quiet → commit
+const MIN_WINDOW_MS = 2000;
+const MAX_WINDOW_MS = 7000;
+const SAMPLE_RATE = 16000;
+const BYTES_PER_SAMPLE = 2;
 
 export type QwenStatus = "connecting" | "ready" | "closed" | "error";
 
@@ -70,6 +80,11 @@ export class QwenRealtimeClient {
   // response — emit the segment only once per response id.
   private lastDoneResponseId: string | null = null;
 
+  // RMS-VAD turn state — accumulates per-chunk and triggers manual commits.
+  private windowMs = 0;
+  private silenceMs = 0;
+  private hasAudioInWindow = false;
+
   constructor(public callbacks: QwenRealtimeCallbacks = {}) {}
 
   setMuted(muted: boolean): void {
@@ -84,6 +99,9 @@ export class QwenRealtimeClient {
     this.sourceBuffer = "";
     this.pendingSourceFinals = [];
     this.lastDoneResponseId = null;
+    this.windowMs = 0;
+    this.silenceMs = 0;
+    this.hasAudioInWindow = false;
 
     this.callbacks.onStatusChange?.("connecting");
 
@@ -112,14 +130,17 @@ export class QwenRealtimeClient {
           input_audio_format: "pcm",
           output_audio_format: "pcm",
           instructions:
-            `You are a real-time translator. Translate everything you hear into ` +
-            `${cfg.targetLanguageName}. Output ONLY the translation — no commentary, ` +
-            `no source text, no explanations.`,
-          turn_detection: {
-            type: "server_vad",
-            threshold: 0.5,
-            silence_duration_ms: 800,
-          },
+            `You are a professional simultaneous interpreter translating one ` +
+            `speaker's talk into ${cfg.targetLanguageName}. RULES: ` +
+            `(1) Use consistent singular pronouns for the speaker across ` +
+            `turns — refer to them the same way every time. ` +
+            `(2) Preserve continuity from earlier turns in this session; ` +
+            `if a sentence was cut mid-thought in a prior turn, continue ` +
+            `smoothly. (3) Translate EVERY utterance fully — never stay ` +
+            `silent. (4) Output ONLY the ${cfg.targetLanguageName} ` +
+            `translation, no source, no commentary.`,
+          // VAD disabled — client drives commits via RMS-VAD (see sendAudio).
+          turn_detection: null,
         },
       };
       try {
@@ -168,7 +189,49 @@ export class QwenRealtimeClient {
       );
     } catch {
       /* ignore — onclose / onerror will surface real failure */
+      return;
     }
+
+    // RMS-VAD turn control. Advance window/silence timers, fire commit at
+    // a natural pause once we've buffered enough audio.
+    const chunkMs = (pcm.byteLength / (SAMPLE_RATE * BYTES_PER_SAMPLE)) * 1000;
+    const energy = rmsInt16(pcm);
+    this.windowMs += chunkMs;
+    if (energy >= SILENCE_RMS) {
+      this.silenceMs = 0;
+      this.hasAudioInWindow = true;
+    } else {
+      this.silenceMs += chunkMs;
+    }
+
+    // Skip committing windows that contain only silence — avoids the
+    // pre-speech intro artifact ("Xin chào, tôi là trợ lý...") we saw in
+    // benchmarks when commit fires on empty audio.
+    if (!this.hasAudioInWindow) {
+      if (this.windowMs >= MAX_WINDOW_MS) {
+        this.windowMs = 0;
+        this.silenceMs = 0;
+      }
+      return;
+    }
+
+    const hitMax = this.windowMs >= MAX_WINDOW_MS;
+    const hitPause =
+      this.windowMs >= MIN_WINDOW_MS && this.silenceMs >= SILENCE_MS;
+    if (hitMax || hitPause) this.commitTurn();
+  }
+
+  private commitTurn(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    try {
+      this.ws.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
+      this.ws.send(JSON.stringify({ type: "response.create" }));
+    } catch {
+      /* ignore — onclose / onerror will surface real failure */
+    }
+    this.windowMs = 0;
+    this.silenceMs = 0;
+    this.hasAudioInWindow = false;
   }
 
   /**
@@ -195,6 +258,9 @@ export class QwenRealtimeClient {
       this.connected = false;
       return;
     }
+    // Commit any pending audio so the tail of the last sentence still gets
+    // translated. Only useful if the window had real speech.
+    if (this.hasAudioInWindow && this.windowMs > 0) this.commitTurn();
     this.connected = false;
     this.flushPending();
     try {
@@ -301,6 +367,19 @@ function friendlyError(code?: string, message?: string): string {
   if (c.includes("model") && c.includes("not"))
     return "Qwen Realtime model unavailable.";
   return message ?? "Qwen Realtime error.";
+}
+
+/** RMS amplitude of int16 little-endian PCM in an ArrayBuffer. */
+function rmsInt16(buf: ArrayBuffer): number {
+  const view = new DataView(buf);
+  const n = Math.floor(buf.byteLength / 2);
+  if (!n) return 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const s = view.getInt16(i * 2, true);
+    sum += s * s;
+  }
+  return Math.sqrt(sum / n);
 }
 
 function arrayBufferToBase64(buf: ArrayBuffer): string {

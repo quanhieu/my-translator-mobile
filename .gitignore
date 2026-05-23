@@ -45,3 +45,9 @@ app-example
 # Benchmark artifacts (local only)
 benchmark-realtime.cjs
 benchmark-result.json
+benchmark-qwen-variants.cjs
+benchmark-qwen-variants-result.json
+benchmark-qwen-commit.cjs
+benchmark-qwen-commit-result.json
+benchmark-qwen-coherence.cjs
+benchmark-qwen-coherence-result.json
