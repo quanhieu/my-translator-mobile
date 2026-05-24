@@ -51,18 +51,37 @@ Chỉ cần **một** trong ba key là dùng được.
 
 ## 3. Qwen / DashScope (miễn phí, đang preview)
 
-1. Mở <https://bailian.console.alibabacloud.com> (Alibaba Cloud Model Studio)
-   và đăng ký / đăng nhập tài khoản Alibaba Cloud.
-2. Kích hoạt dịch vụ **Model Studio (DashScope)** nếu được nhắc.
-3. Vào mục **API Keys**, bấm **Create API Key**, đặt tên bất kỳ.
-4. **Sao chép key ngay** — chỉ hiển thị đầy đủ một lần.
-5. Mở app My Translator → màn hình **Settings** → chọn engine **Qwen**, chọn
+> ⚠️ **QUAN TRỌNG — phải chọn region Singapore.** App kết nối tới endpoint
+> quốc tế `dashscope-intl.aliyuncs.com`. Key tạo ở region khác (China Beijing,
+> Hong Kong, US Virginia, Germany Frankfurt) sẽ bị reject và app báo
+> `WebSocket error` ngay khi bấm Start.
+
+1. Mở <https://bailian.console.alibabacloud.com> (Alibaba Cloud Model Studio).
+2. **Trước khi đăng nhập / đăng ký**, bấm vào dropdown region ở góc trên bên
+   phải và chọn **Singapore** (xem ảnh dưới). Nếu lỡ login ở region khác rồi,
+   switch sang Singapore — có thể phải đăng ký workspace riêng cho region này.
+
+   ![Region picker — phải chọn Singapore](user_manual/qwen_api_key.png)
+
+3. Sau khi vào Console (đảm bảo góc trên vẫn hiển thị "Singapore"), kích hoạt
+   dịch vụ **Model Studio (DashScope)** nếu được nhắc.
+4. Vào mục **API Keys**, bấm **Create API Key**, đặt tên bất kỳ.
+5. **Sao chép key ngay** — chỉ hiển thị đầy đủ một lần.
+6. Mở app My Translator → màn hình **Settings** → chọn engine **Qwen**, chọn
    ngôn ngữ đích, rồi dán key vào ô **Qwen (DashScope)** như ảnh dưới.
 
 ![Settings — Qwen engine, target language, DashScope key, assistant model](user_manual/qwen_setting.jpeg)
 
 > Qwen-Omni Realtime hiện ở giai đoạn **xem trước (preview)** và miễn phí gọi
 > mô hình. Giá có thể thay đổi khi rời preview — theo dõi thông báo của Alibaba Cloud.
+
+### Khắc phục lỗi `WebSocket error` khi dùng Qwen
+
+| Triệu chứng | Nguyên nhân thường gặp | Cách sửa |
+| --- | --- | --- |
+| Báo `WebSocket error` ngay khi bấm Start | Key tạo ở region khác Singapore | Tạo lại key ở region Singapore (xem mục 2 ở trên) |
+| Báo lỗi sau ~5–10 giây | Key đúng region nhưng chưa kích hoạt model Qwen-Omni Realtime | Vào Model Studio → Model Square → bật `qwen3-omni-flash-realtime` |
+| Báo lỗi không ổn định | Mạng chặn `dashscope-intl.aliyuncs.com` (firewall công ty / VPN) | Thử mạng khác (4G/5G) hoặc tắt VPN |
 
 ---
 
