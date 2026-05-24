@@ -9,8 +9,12 @@ Chỉ cần **một** trong ba key là dùng được.
 | Nhà cung cấp | Giá tham khảo | Đầu ra | Gợi ý |
 | --- | --- | --- | --- |
 | **Soniox** | ~$0.12/giờ | Văn bản dịch trên màn hình | Rẻ, **nên dùng** |
-| **OpenAI Realtime** | ~$4/giờ | Văn bản + giọng nói (mặc định tắt) | Khi cần đọc thành tiếng |
-| **Qwen-Omni Realtime** | Bản xem trước miễn phí | Văn bản + giọng nói (mặc định tắt) | Đang miễn phí, giá có thể đổi |
+| **OpenAI Realtime** | ~$4/giờ | Văn bản dịch trên màn hình | Chất lượng dịch cao |
+| **Qwen-Omni Realtime** | Bản xem trước miễn phí | Văn bản dịch trên màn hình | Đang miễn phí, giá có thể đổi |
+
+> Từ bản 0.4.2, giọng đọc tự động (TTS) đã được tắt ở cả OpenAI và Qwen vì
+> loa máy phát ra sẽ vọng lại vào mic và gây lặp vô hạn. Bản dịch chỉ hiển
+> thị bằng văn bản trên màn hình.
 
 ---
 
@@ -29,7 +33,7 @@ Chỉ cần **một** trong ba key là dùng được.
 
 ---
 
-## 2. OpenAI (khi cần giọng nói)
+## 2. OpenAI Realtime (chất lượng dịch cao)
 
 1. Mở <https://platform.openai.com/api-keys> và đăng nhập (hoặc tạo tài khoản).
 2. Nếu là tài khoản mới: vào **Settings → Billing** và nạp tối thiểu một khoản
@@ -40,21 +44,22 @@ Chỉ cần **một** trong ba key là dùng được.
 4. Quay lại trang **API keys**, bấm **Create new secret key**, đặt tên
    (ví dụ: `my-translator`).
 5. **Sao chép key ngay** — OpenAI chỉ hiển thị một lần duy nhất.
-6. Mở app My Translator → màn hình **Settings** → dán key vào ô **OpenAI**.
-7. Trên màn hình chính, bấm biểu tượng 🔇 ở thanh tiêu đề để bật giọng đọc
-   (mặc định đang tắt tiếng).
+6. Mở app My Translator → màn hình **Settings** → chọn engine **OpenAI** rồi
+   dán key vào ô **OpenAI**.
 
 ---
 
-## 3. Qwen / DashScope (khi cần giọng nói, đang miễn phí)
+## 3. Qwen / DashScope (miễn phí, đang preview)
 
 1. Mở <https://bailian.console.alibabacloud.com> (Alibaba Cloud Model Studio)
    và đăng ký / đăng nhập tài khoản Alibaba Cloud.
 2. Kích hoạt dịch vụ **Model Studio (DashScope)** nếu được nhắc.
 3. Vào mục **API Keys**, bấm **Create API Key**, đặt tên bất kỳ.
 4. **Sao chép key ngay** — chỉ hiển thị đầy đủ một lần.
-5. Mở app My Translator → màn hình **Settings** → dán key vào ô **Qwen (DashScope)**.
-6. Trên màn hình chính, bấm biểu tượng 🔇 ở thanh tiêu đề để bật giọng đọc.
+5. Mở app My Translator → màn hình **Settings** → chọn engine **Qwen**, chọn
+   ngôn ngữ đích, rồi dán key vào ô **Qwen (DashScope)** như ảnh dưới.
+
+![Settings — Qwen engine, target language, DashScope key, assistant model](user_manual/qwen_setting.jpeg)
 
 > Qwen-Omni Realtime hiện ở giai đoạn **xem trước (preview)** và miễn phí gọi
 > mô hình. Giá có thể thay đổi khi rời preview — theo dõi thông báo của Alibaba Cloud.

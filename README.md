@@ -41,7 +41,6 @@ A lightweight stand-in for a human cabin (booth) interpreter when there isn't on
    Hướng dẫn chi tiết bằng tiếng Việt: [docs/api-key-guide-vi.md](docs/api-key-guide-vi.md)
 3. Pick your **target** language (the spoken language is auto-detected).
 4. Back on the main screen, tap **Start**, allow the microphone, and listen.
-5. On OpenAI: tap 🔇 in the header to unmute voice output.
 
 After **Stop** you can **Copy** / **Share** the transcript, or **Summarize** the
 session with OpenAI (needs an OpenAI key — works even after a Soniox session).
@@ -74,10 +73,12 @@ latest over-the-air JS bundle.
 | Engine | Cost | Output |
 | --- | --- | --- |
 | **Soniox** | ~$0.12/hr | On-screen translated text |
-| **OpenAI Realtime** | ~$4/hr | Text + optional spoken voice (muted by default) |
-| **Qwen-Omni Realtime** | Free preview | Text + optional spoken voice (muted by default) |
+| **OpenAI Realtime** | ~$4/hr | On-screen translated text |
+| **Qwen-Omni Realtime** | Free preview | On-screen translated text |
 
-Source language is auto-detected — you only pick a target.
+Source language is auto-detected — you only pick a target. Spoken voice
+output is disabled on this client (the speaker echoes back into the mic and
+causes a translation loop) — translations are read on screen.
 
 ---
 

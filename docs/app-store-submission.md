@@ -74,7 +74,25 @@ translate,translation,live,conference,lecture,interpreter,speech,realtime,talk,s
 
 ## What's New in This Version (release notes)
 
-### v0.4.1 (build 6) — TestFlight
+### v0.4.1 (build 6, OTA 2026-05-24) — TestFlight
+
+```
+Settings UI is now engine-aware, and spoken voice is disabled to fix a
+translation loop.
+
+- Settings: picking an engine now hides the irrelevant API key / language /
+  assistant model — you see only what each engine needs
+- Qwen now has its own assistant model list (qwen-plus / qwen-max /
+  qwen-turbo) and routes summary / chat / auto-name through DashScope
+- Spoken voice disabled on OpenAI and Qwen: the speaker was echoing back
+  into the mic and creating an infinite translation loop. Translations
+  are read on screen
+- Qwen session also drops audio modality server-side to save tokens
+```
+
+(updates delivered as an OTA bundle — same build 6, runtime 0.4.1)
+
+### v0.4.1 (build 6) — TestFlight (initial)
 
 ```
 Qwen-Omni Realtime engine is now stable.
