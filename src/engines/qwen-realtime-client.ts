@@ -125,8 +125,9 @@ export class QwenRealtimeClient {
       const sessionUpdate = {
         type: "session.update",
         session: {
-          modalities: cfg.audioOutput !== false ? ["text", "audio"] : ["text"],
-          voice: "Tina",
+          // Text-only: TTS playback loops back into the mic on this client,
+          // so we never request audio output — saves DashScope tokens too.
+          modalities: ["text"],
           input_audio_format: "pcm",
           output_audio_format: "pcm",
           instructions:
@@ -275,11 +276,26 @@ export class QwenRealtimeClient {
   private handleServerEvent(data: Record<string, unknown>): void {
     const type = data.type as string | undefined;
     if (!type) return;
-    if (__DEV__) console.log("[qwen-realtime] evt:", type);
+    // Verbose log for production debug — capture via Xcode Console.
+    console.log("[qwen-realtime] evt:", type);
 
     switch (type) {
       case "session.created":
-      case "session.updated":
+      case "session.updated": {
+        // Dump applied session config so we can verify instructions + modalities
+        // were accepted by the server.
+        const sess = (data as { session?: unknown }).session;
+        try {
+          console.log(
+            "[qwen-realtime]",
+            type,
+            JSON.stringify(sess).slice(0, 800),
+          );
+        } catch {
+          /* ignore */
+        }
+        break;
+      }
       case "response.created":
       case "response.done":
         break;
@@ -287,6 +303,10 @@ export class QwenRealtimeClient {
       case "conversation.item.input_audio_transcription.completed": {
         const text =
           (data.transcript as string) ?? (data.text as string) ?? "";
+        console.log(
+          "[qwen-realtime] SRC",
+          (text || "").slice(0, 120),
+        );
         if (text) {
           this.pendingSourceFinals.push(text);
           this.sourceBuffer = "";
@@ -326,6 +346,12 @@ export class QwenRealtimeClient {
           (data.text as string) ??
           (data.transcript as string) ??
           this.provisionalBuffer;
+        console.log(
+          "[qwen-realtime] DONE",
+          type,
+          "text=",
+          (text || "").slice(0, 120),
+        );
         const sourceText =
           this.pendingSourceFinals.shift() ?? this.sourceBuffer;
         this.provisionalBuffer = "";

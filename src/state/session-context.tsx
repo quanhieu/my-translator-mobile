@@ -25,6 +25,7 @@ import { AudioCapture } from "@/src/lib/audio-capture";
 import { hapticError, hapticStart, hapticStop } from "@/src/lib/haptics";
 import { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue";
 import { autoNameSession, saveSession } from "@/src/lib/history-store";
+import { pickKeyForModel } from "@/src/lib/openai-chat";
 import { QWEN_LANGS, langName } from "@/src/lib/languages";
 import type { SessionMeta, SessionStatus, TranscriptRow } from "@/src/types";
 import { useSettings } from "@/src/state/settings-context";
@@ -465,10 +466,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       };
       // Persist, then best-effort LLM auto-name. Both off the UI path: stop()
       // returns to idle immediately regardless of storage/network outcome.
+      const autoNameKey = pickKeyForModel(chatModel, openaiKey, qwenKey);
       saveSession(meta, finals)
         .then((ok) => {
-          if (ok && openaiKey) {
-            autoNameSession(meta.id, openaiKey, chatModel, targetLang).catch(
+          if (ok && autoNameKey) {
+            autoNameSession(meta.id, autoNameKey, chatModel, targetLang).catch(
               () => {},
             );
           }

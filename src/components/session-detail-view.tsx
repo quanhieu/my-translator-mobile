@@ -9,7 +9,7 @@ import { type DetailTab, DetailTabBar } from "@/src/components/detail-tab-bar";
 import { DetailTranscriptTab } from "@/src/components/detail-transcript-tab";
 import { RenameSessionModal } from "@/src/components/rename-session-modal";
 import { renameSession, saveSummary } from "@/src/lib/history-store";
-import { suggestSessionTitle } from "@/src/lib/openai-chat";
+import { pickKeyForModel, suggestSessionTitle } from "@/src/lib/openai-chat";
 import {
   exportSessionMarkdown,
   saveSessionToDocuments,
@@ -27,7 +27,8 @@ export function SessionDetailView({
   onBack: () => void;
   onChanged: () => void;
 }) {
-  const { openaiKey, targetLang, chatModel } = useSettings();
+  const { openaiKey, qwenKey, targetLang, chatModel } = useSettings();
+  const chatApiKey = pickKeyForModel(chatModel, openaiKey, qwenKey);
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(session.meta.name);
   const [summary, setSummary] = useState(session.summary);
@@ -42,11 +43,11 @@ export function SessionDetailView({
   };
 
   const autoName = async () => {
-    if (autoNaming || !openaiKey) return;
+    if (autoNaming || !chatApiKey) return;
     setAutoNaming(true);
     try {
       const title = await suggestSessionTitle({
-        apiKey: openaiKey,
+        apiKey: chatApiKey,
         text: summary && summary.trim() ? summary : formatTranscript(session.rows),
         targetLang,
         model: chatModel,
@@ -98,7 +99,7 @@ export function SessionDetailView({
         </View>
       </View>
       <View className="flex-row items-center gap-2 px-4 pb-3 border-b border-zinc-200 dark:border-zinc-800">
-        {openaiKey ? (
+        {chatApiKey ? (
           <Pressable
             onPress={autoName}
             disabled={autoNaming}

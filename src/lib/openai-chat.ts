@@ -4,9 +4,27 @@
 
 import type { ChatMessage } from "@/src/types";
 
-const ENDPOINT = "https://api.openai.com/v1/chat/completions";
+const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+// DashScope international OpenAI-compat endpoint. Same payload shape as OpenAI;
+// auth via DashScope key. Model id `qwen-*` routes here automatically.
+const DASHSCOPE_ENDPOINT =
+  "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
 export const DEFAULT_CHAT_MODEL = "gpt-5-mini";
 export const MAX_INPUT_CHARS = 12000;
+
+function endpointForModel(model: string): string {
+  return model.startsWith("qwen") ? DASHSCOPE_ENDPOINT : OPENAI_ENDPOINT;
+}
+
+// Pick the right API key for a chat model. qwen-* runs on DashScope (qwenKey),
+// everything else (gpt-*, default) runs on OpenAI (openaiKey).
+export function pickKeyForModel(
+  model: string,
+  openaiKey: string,
+  qwenKey: string,
+): string {
+  return model.startsWith("qwen") ? qwenKey : openaiKey;
+}
 
 interface ChatArgs {
   apiKey: string;
@@ -21,7 +39,7 @@ export async function chatCompletion({
   system,
   messages,
 }: ChatArgs): Promise<string> {
-  const res = await fetch(ENDPOINT, {
+  const res = await fetch(endpointForModel(model), {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -41,13 +59,15 @@ export async function chatCompletion({
     } catch {
       /* non-JSON error body */
     }
-    throw new Error(`OpenAI ${res.status}${detail ? `: ${detail}` : ""}`);
+    const provider = model.startsWith("qwen") ? "DashScope" : "OpenAI";
+    throw new Error(`${provider} ${res.status}${detail ? `: ${detail}` : ""}`);
   }
 
   const body = await res.json();
   const content = body?.choices?.[0]?.message?.content;
   if (typeof content !== "string" || !content.trim()) {
-    throw new Error("OpenAI returned an empty response");
+    const provider = model.startsWith("qwen") ? "DashScope" : "OpenAI";
+    throw new Error(`${provider} returned an empty response`);
   }
   return content.trim();
 }

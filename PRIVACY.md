@@ -1,6 +1,6 @@
 # Privacy Policy — My Translator
 
-_Last updated: 2026-05-15_
+_Last updated: 2026-05-23_
 
 My Translator is a live translation companion for events and lectures. It is designed to collect as little data as possible.
 
@@ -11,21 +11,23 @@ My Translator is a live translation companion for events and lectures. It is des
 ## How the app works
 
 1. The app captures audio from your device microphone only while you tap **Start** and stops when you tap **Stop**.
-2. The captured audio is streamed directly from your device to the speech-to-text provider you choose:
-   - **Soniox** (<https://soniox.com>), or
-   - **OpenAI** (<https://openai.com>)
+2. The captured audio is streamed directly from your device to the speech-to-text / translation provider you choose:
+   - **Soniox** (<https://soniox.com>),
+   - **OpenAI** (<https://openai.com>), or
+   - **Alibaba Cloud DashScope** — Qwen-Omni Realtime (<https://www.alibabacloud.com/product/modelstudio>)
 3. The translated text returned by the provider is displayed on screen and discarded when you clear the screen, close the app, or stop the session.
 
 We are not a party to the connection between your device and these providers. Their handling of audio and text is governed by their own privacy policies:
 
 - Soniox Privacy Policy: <https://soniox.com/privacy>
 - OpenAI Privacy Policy: <https://openai.com/policies/privacy-policy>
+- Alibaba Cloud Privacy Policy: <https://www.alibabacloud.com/help/en/legal/latest/alibaba-cloud-international-website-privacy-policy>
 
 You bring your own API key for each provider. We never see or transmit your key to any server we control.
 
 ## API keys
 
-Your Soniox and/or OpenAI API keys are stored **only on your device**, in the platform's secure keystore:
+Your Soniox, OpenAI, and/or Alibaba Cloud DashScope (Qwen) API keys are stored **only on your device**, in the platform's secure keystore:
 
 - iOS: Keychain (via `expo-secure-store`)
 - Android: Keystore (via `expo-secure-store`)

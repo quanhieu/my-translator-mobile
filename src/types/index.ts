@@ -9,8 +9,10 @@ export const ENGINE_LABELS: Record<Engine, string> = {
 };
 
 // Engines that produce spoken TTS output (and therefore show the mute toggle).
-export function engineHasVoice(engine: Engine): boolean {
-  return engine === "openai" || engine === "qwen";
+// OpenAI + Qwen Realtime both ship voice but the playback loops on this client
+// (audio echoes back into the mic). Disabled until we add proper echo cancel.
+export function engineHasVoice(_engine: Engine): boolean {
+  return false;
 }
 
 export type LangCode = string;

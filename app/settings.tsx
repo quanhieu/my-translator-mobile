@@ -12,19 +12,36 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { router } from "expo-router";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { BackButton } from "@/src/components/back-button";
 import { SettingsFooter } from "@/src/components/settings-footer";
 import { type UpdateResult, checkAndApplyUpdate } from "@/src/lib/ota-update";
-import { OPENAI_LANGS, type Language } from "@/src/lib/languages";
+import {
+  OPENAI_LANGS,
+  QWEN_LANGS,
+  SONIOX_LANGS,
+  type Language,
+} from "@/src/lib/languages";
 import { clearAllPrefs, clearAllSecureKeys } from "@/src/lib/secure-keys";
 import { useSettings } from "@/src/state/settings-context";
 import type { Engine, LangCode } from "@/src/types";
 
-// Models usable for summary / chat / auto-name. gpt-5-mini is the proven
-// default (fast + cheap); the others trade cost for depth on long sessions.
-const CHAT_MODELS = ["gpt-5-mini", "gpt-5", "gpt-4.1-mini"];
+// Assistant model lists per engine. OpenAI-backed engines (soniox/openai) use
+// GPT chat models for summary / auto-name. Qwen uses DashScope chat models so
+// users with only a Qwen key still get summary features.
+const OPENAI_CHAT_MODELS = ["gpt-5-mini", "gpt-5", "gpt-4.1-mini"];
+const QWEN_CHAT_MODELS = ["qwen-plus", "qwen-max", "qwen-turbo"];
+
+function langsForEngine(engine: Engine): Language[] {
+  if (engine === "soniox") return SONIOX_LANGS;
+  if (engine === "openai") return OPENAI_LANGS;
+  return QWEN_LANGS;
+}
+
+function chatModelsForEngine(engine: Engine): string[] {
+  return engine === "qwen" ? QWEN_CHAT_MODELS : OPENAI_CHAT_MODELS;
+}
 
 export default function SettingsScreen() {
   const {
@@ -42,9 +59,22 @@ export default function SettingsScreen() {
     setChatModel,
   } = useSettings();
 
-  // Both engines auto-detect source language. Share OpenAI's target list for
-  // consistency (Soniox supports the same superset for translation targets).
-  const langs: Language[] = OPENAI_LANGS;
+  // Engine-specific lists. Source language is always auto-detected.
+  const langs: Language[] = langsForEngine(engine);
+  const chatModels = chatModelsForEngine(engine);
+
+  // Keep chatModel valid for the active engine. Switching from openai/soniox
+  // to qwen (or vice versa) auto-snaps to the new engine's first model so
+  // summary/chat route to the correct provider without manual re-selection.
+  useEffect(() => {
+    if (!chatModels.includes(chatModel)) {
+      setChatModel(chatModels[0]);
+    }
+  }, [chatModels, chatModel, setChatModel]);
+
+  const activeChatModel = chatModels.includes(chatModel)
+    ? chatModel
+    : chatModels[0];
 
   return (
     <SafeAreaView
@@ -101,69 +131,75 @@ export default function SettingsScreen() {
           </Text>
         </Section>
 
-        <Section title="Soniox API key">
-          <TextInput
-            value={sonioxKey}
-            onChangeText={setSonioxKey}
-            placeholder="paste here"
-            placeholderTextColor="#9ca3af"
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-            className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
-          />
-        </Section>
+        {engine === "soniox" ? (
+          <Section title="Soniox API key">
+            <TextInput
+              value={sonioxKey}
+              onChangeText={setSonioxKey}
+              placeholder="paste here"
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
+            />
+          </Section>
+        ) : null}
 
-        <Section title="OpenAI API key">
-          <TextInput
-            value={openaiKey}
-            onChangeText={setOpenaiKey}
-            placeholder="sk-…"
-            placeholderTextColor="#9ca3af"
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-            className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
-          />
-          <Text className="text-zinc-500 text-xs mt-1">
-            Billed to your key. OpenAI Realtime ≈ $4/hr.
-          </Text>
-        </Section>
-
-        <Section title="Qwen (DashScope) API key">
-          <TextInput
-            value={qwenKey}
-            onChangeText={setQwenKey}
-            placeholder="sk-…"
-            placeholderTextColor="#9ca3af"
-            autoCapitalize="none"
-            autoCorrect={false}
-            secureTextEntry
-            className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
-          />
-          <Text className="text-zinc-500 text-xs mt-1">
-            Get a key at Alibaba Cloud Model Studio. Qwen-Omni Realtime is in a
-            free preview — pricing may change once it leaves preview.
-          </Text>
-        </Section>
-
-        {openaiKey ? (
-          <Section title="Assistant model">
-            <Row>
-              {CHAT_MODELS.map((m) => (
-                <Choice
-                  key={m}
-                  label={m}
-                  active={chatModel === m}
-                  onPress={() => setChatModel(m)}
-                />
-              ))}
-            </Row>
+        {engine === "openai" ? (
+          <Section title="OpenAI API key">
+            <TextInput
+              value={openaiKey}
+              onChangeText={setOpenaiKey}
+              placeholder="sk-…"
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
+            />
             <Text className="text-zinc-500 text-xs mt-1">
-              Used for summary, chat, and auto-naming.
+              Billed to your key. OpenAI Realtime ≈ $4/hr.
             </Text>
           </Section>
         ) : null}
+
+        {engine === "qwen" ? (
+          <Section title="Qwen (DashScope) API key">
+            <TextInput
+              value={qwenKey}
+              onChangeText={setQwenKey}
+              placeholder="sk-…"
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
+            />
+            <Text className="text-zinc-500 text-xs mt-1">
+              Get a key at Alibaba Cloud Model Studio. Qwen-Omni Realtime is in a
+              free preview — pricing may change once it leaves preview.
+            </Text>
+          </Section>
+        ) : null}
+
+        <Section title="Assistant model">
+          <Row>
+            {chatModels.map((m) => (
+              <Choice
+                key={m}
+                label={m}
+                active={activeChatModel === m}
+                onPress={() => setChatModel(m)}
+              />
+            ))}
+          </Row>
+          <Text className="text-zinc-500 text-xs mt-1">
+            {engine === "qwen"
+              ? "Used for summary, chat, and auto-naming. Runs on your DashScope key."
+              : "Used for summary, chat, and auto-naming. Runs on your OpenAI key."}
+          </Text>
+        </Section>
 
         <Section title="App updates">
           <UpdateRow />

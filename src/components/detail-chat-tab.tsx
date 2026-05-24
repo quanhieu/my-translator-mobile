@@ -12,7 +12,11 @@ import {
 } from "react-native";
 
 import { buildChatContext } from "@/src/lib/chat-context";
-import { chatCompletion, DEFAULT_CHAT_MODEL } from "@/src/lib/openai-chat";
+import {
+  chatCompletion,
+  DEFAULT_CHAT_MODEL,
+  pickKeyForModel,
+} from "@/src/lib/openai-chat";
 import { saveChat } from "@/src/lib/history-store";
 import { useSettings } from "@/src/state/settings-context";
 import type { ChatMessage, TranscriptRow } from "@/src/types";
@@ -42,18 +46,21 @@ export function DetailChatTab({
   initialChat?: ChatMessage[];
   chatModel?: string;
 }) {
-  const { openaiKey, targetLang } = useSettings();
+  const { openaiKey, qwenKey, targetLang } = useSettings();
+  const activeModel = chatModel || DEFAULT_CHAT_MODEL;
+  const apiKey = pickKeyForModel(activeModel, openaiKey, qwenKey);
+  const keyProvider = activeModel.startsWith("qwen") ? "DashScope" : "OpenAI";
   const [messages, setMessages] = useState<ChatMessage[]>(initialChat ?? []);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
-  if (!openaiKey) {
+  if (!apiKey) {
     return (
       <View className="flex-1 items-center justify-center px-6">
         <Text className="text-zinc-500 dark:text-zinc-400 text-xs text-center">
-          Add an OpenAI key in{" "}
+          Add a {keyProvider} key in{" "}
           <Link href="/settings" className="underline">
             Settings
           </Link>{" "}
@@ -78,8 +85,8 @@ export function DetailChatTab({
     try {
       const context = buildChatContext(rows, summary);
       const reply = await chatCompletion({
-        apiKey: openaiKey,
-        model: chatModel || DEFAULT_CHAT_MODEL,
+        apiKey,
+        model: activeModel,
         system: `You answer questions about a recorded session. Use ONLY the session content below. If the answer is not in it, say so. Respond in the language with code "${targetLang}".\n\n--- SESSION ---\n${context}`,
         messages: next,
       });

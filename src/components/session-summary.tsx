@@ -2,7 +2,7 @@ import { Link } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 
-import { summarizeTranscript } from "@/src/lib/openai-chat";
+import { pickKeyForModel, summarizeTranscript } from "@/src/lib/openai-chat";
 import { formatTranscript } from "@/src/lib/transcript-format";
 import { useSession } from "@/src/state/session-context";
 import { useSettings } from "@/src/state/settings-context";
@@ -21,7 +21,9 @@ export function SummaryPanel({
   initialSummary?: string;
   onSaved?: (text: string) => void;
 }) {
-  const { openaiKey, targetLang, chatModel } = useSettings();
+  const { openaiKey, qwenKey, targetLang, chatModel } = useSettings();
+  const apiKey = pickKeyForModel(chatModel, openaiKey, qwenKey);
+  const keyProvider = chatModel.startsWith("qwen") ? "DashScope" : "OpenAI";
 
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(
@@ -31,11 +33,11 @@ export function SummaryPanel({
 
   // No key and nothing saved → guide the user. If a saved summary exists we
   // still show it read-only even without a key.
-  if (!openaiKey && !summary) {
+  if (!apiKey && !summary) {
     return (
       <View className="px-4 pt-2">
         <Text className="text-zinc-500 dark:text-zinc-400 text-xs">
-          Add an OpenAI key in{" "}
+          Add a {keyProvider} key in{" "}
           <Link href="/settings" className="underline">
             Settings
           </Link>{" "}
@@ -51,7 +53,7 @@ export function SummaryPanel({
     setSummary(null);
     try {
       const text = await summarizeTranscript({
-        apiKey: openaiKey,
+        apiKey,
         text: formatTranscript(rows),
         targetLang,
         model: chatModel,
@@ -67,7 +69,7 @@ export function SummaryPanel({
 
   return (
     <View className="px-4 pt-2">
-      {openaiKey ? (
+      {apiKey ? (
         <Pressable
           onPress={run}
           disabled={loading}

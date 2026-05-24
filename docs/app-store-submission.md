@@ -74,6 +74,21 @@ translate,translation,live,conference,lecture,interpreter,speech,realtime,talk,s
 
 ## What's New in This Version (release notes)
 
+### v0.4.1 (build 6) — TestFlight
+
+```
+Qwen-Omni Realtime engine is now stable.
+
+- Added third engine: Alibaba Cloud Qwen-Omni Realtime (text + optional voice, free preview)
+- Fixed Qwen content-loss: switched to client-side silence detection, full translations restored
+- Qwen first-token latency now ~2s (faster than OpenAI)
+- Better pronoun continuity across turns
+```
+
+(286 chars.)
+
+### v0.4.0 — first public release
+
 ```
 First public release.
 
