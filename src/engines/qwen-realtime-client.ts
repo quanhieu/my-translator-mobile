@@ -16,10 +16,14 @@
  * segment translates then the stream stalls. User reported 2026-05-25 on
  * iPhone v0.4.2. Reverted to explicit `input_audio_transcription.language`.
  *
- * Event mapping:
- *   response.text.delta             → onProvisional
- *   response.text.done              → onSegment("", tgt)
- *   error                           → onError
+ * Event mapping (verified 2026-05-25 via event dump probe):
+ *   response.text.text   → onProvisional (text + stash = full provisional)
+ *   response.text.done   → onSegment("", text)
+ *   error                → onError
+ *
+ * Note: Live model does NOT emit `response.text.delta` (that's the omni-plus
+ * schema). It also does NOT emit source transcription events — source text
+ * is unavailable on this model. Only translation is exposed.
  *
  * Audio: input pcm16 @ 16kHz mono (AudioCapture(16000)). Output disabled
  * — modalities locked to ["text"] (TTS playback would loop into mic).
@@ -199,27 +203,27 @@ export class QwenRealtimeClient {
       case "response.done":
         break;
 
-      case "response.text.delta":
-      case "response.audio_transcript.delta": {
-        const delta = (data.delta as string) ?? "";
-        if (delta) {
-          this.provisionalBuffer += delta;
-          this.callbacks.onProvisional?.(this.provisionalBuffer);
+      case "response.text.text": {
+        // Live model streams via `text` (committed) + `stash` (pending).
+        // Full provisional snapshot = text + stash. Emit on every tick so
+        // UI can render typewriter effect.
+        const committed = (data.text as string) ?? "";
+        const stash = (data.stash as string) ?? "";
+        const snapshot = committed + stash;
+        if (snapshot) {
+          this.provisionalBuffer = snapshot;
+          this.callbacks.onProvisional?.(snapshot);
         }
         break;
       }
 
-      case "response.text.done":
-      case "response.audio_transcript.done": {
+      case "response.text.done": {
         const responseId =
           (data.response_id as string) ?? (data.item_id as string) ?? null;
         if (responseId && responseId === this.lastDoneResponseId) break;
         this.lastDoneResponseId = responseId;
 
-        const text =
-          (data.text as string) ??
-          (data.transcript as string) ??
-          this.provisionalBuffer;
+        const text = (data.text as string) ?? this.provisionalBuffer;
         this.provisionalBuffer = "";
         if (text) this.callbacks.onSegment?.("", text);
         break;
