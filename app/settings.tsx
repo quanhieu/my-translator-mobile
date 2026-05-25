@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
 import { BackButton } from "@/src/components/back-button";
+import { LangDropdown } from "@/src/components/lang-dropdown";
 import { SettingsFooter } from "@/src/components/settings-footer";
 import { type UpdateResult, checkAndApplyUpdate } from "@/src/lib/ota-update";
 import {
@@ -25,7 +26,7 @@ import {
 } from "@/src/lib/languages";
 import { clearAllPrefs, clearAllSecureKeys } from "@/src/lib/secure-keys";
 import { useSettings } from "@/src/state/settings-context";
-import type { Engine, LangCode } from "@/src/types";
+import type { Engine } from "@/src/types";
 
 // Assistant model lists per engine. OpenAI-backed engines (soniox/openai) use
 // GPT chat models for summary / auto-name. Qwen uses DashScope chat models so
@@ -49,17 +50,18 @@ export default function SettingsScreen() {
     openaiKey,
     qwenKey,
     engine,
+    sourceLang,
     targetLang,
     chatModel,
     setSonioxKey,
     setOpenaiKey,
     setQwenKey,
     setEngine,
+    setSourceLang,
     setTargetLang,
     setChatModel,
   } = useSettings();
 
-  // Engine-specific lists. Source language is always auto-detected.
   const langs: Language[] = langsForEngine(engine);
   const chatModels = chatModelsForEngine(engine);
 
@@ -124,11 +126,22 @@ export default function SettingsScreen() {
           </Text>
         </Section>
 
+        <Section title="Source language">
+          <LangDropdown
+            value={sourceLang}
+            onChange={setSourceLang}
+            langs={langs}
+            placeholder="Select source language"
+          />
+        </Section>
+
         <Section title="Target language">
-          <LangPicker value={targetLang} onChange={setTargetLang} langs={langs} />
-          <Text className="text-zinc-500 text-xs mt-1">
-            Source language is auto-detected.
-          </Text>
+          <LangDropdown
+            value={targetLang}
+            onChange={setTargetLang}
+            langs={langs}
+            placeholder="Select target language"
+          />
         </Section>
 
         {engine === "soniox" ? (
@@ -321,28 +334,6 @@ function Choice({
   );
 }
 
-function LangPicker({
-  value,
-  onChange,
-  langs,
-}: {
-  value: LangCode;
-  onChange: (v: LangCode) => void;
-  langs: Language[];
-}) {
-  return (
-    <Row>
-      {langs.map((l) => (
-        <Choice
-          key={l.code}
-          label={l.name}
-          active={value === l.code}
-          onPress={() => onChange(l.code)}
-        />
-      ))}
-    </Row>
-  );
-}
 
 // Re-export so type imports stay co-located with consumers if needed later.
 export type { Engine };

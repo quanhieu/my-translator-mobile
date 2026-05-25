@@ -413,6 +413,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     client.connect({
       apiKey: qwenKey,
+      sourceLanguage: sourceLang,
       targetLanguage: targetLang,
     });
   };

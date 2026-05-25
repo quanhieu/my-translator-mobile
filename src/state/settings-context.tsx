@@ -33,6 +33,7 @@ interface SettingsActions {
   setOpenaiKey: (v: string) => Promise<void>;
   setQwenKey: (v: string) => Promise<void>;
   setEngine: (v: Engine) => void;
+  setSourceLang: (v: LangCode) => void;
   setTargetLang: (v: LangCode) => void;
   setPanelMode: (v: PanelMode) => void;
   setFontSize: (v: number) => void;
@@ -44,9 +45,10 @@ const DEFAULT_STATE: SettingsState = {
   openaiKey: "",
   qwenKey: "",
   engine: "soniox",
-  // Source is always auto-detect — translation at live events shouldn't
-  // require the speaker to declare their language up front. Both Soniox
-  // ("auto" → no language_hints) and OpenAI Whisper auto-detect natively.
+  // Default "auto" — Soniox/OpenAI auto-detect natively. Qwen LiveTranslate
+  // does NOT auto-detect reliably (tested 2026-05-25 on real device: stops
+  // after one segment), so for Qwen the UI defaults to a sensible value
+  // ("en") and source picker is required.
   sourceLang: "auto",
   targetLang: "vi",
   panelMode: "single",
@@ -67,6 +69,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         openaiKey,
         qwenKey,
         engine,
+        sourceLang,
         targetLang,
         panelMode,
         fontSize,
@@ -76,6 +79,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         getSecureKey("openai"),
         getSecureKey("qwen"),
         getPref("engine"),
+        getPref("sourceLang"),
         getPref("targetLang"),
         getPref("panelMode"),
         getPref("fontSize"),
@@ -86,7 +90,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         openaiKey: openaiKey ?? "",
         qwenKey: qwenKey ?? "",
         engine: engine === "openai" || engine === "qwen" ? engine : "soniox",
-        sourceLang: "auto",
+        sourceLang: sourceLang ?? DEFAULT_STATE.sourceLang,
         targetLang: targetLang ?? DEFAULT_STATE.targetLang,
         panelMode: panelMode === "dual" ? "dual" : "single",
         fontSize: fontSize ? parseInt(fontSize, 10) || DEFAULT_STATE.fontSize : DEFAULT_STATE.fontSize,
@@ -111,6 +115,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const setEngine = (v: Engine) => {
     setState((s) => ({ ...s, engine: v }));
     setPref("engine", v).catch(() => {});
+  };
+  const setSourceLang = (v: LangCode) => {
+    setState((s) => ({ ...s, sourceLang: v }));
+    setPref("sourceLang", v).catch(() => {});
   };
   const setTargetLang = (v: LangCode) => {
     setState((s) => ({ ...s, targetLang: v }));
@@ -137,6 +145,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setOpenaiKey,
         setQwenKey,
         setEngine,
+        setSourceLang,
         setTargetLang,
         setPanelMode,
         setFontSize,

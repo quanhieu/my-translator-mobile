@@ -11,10 +11,10 @@
  * `response.create` are rejected. We just append audio and let server
  * decide segmentation. This replaces the omni-plus client-side RMS-VAD.
  *
- * Source language: auto-detected. The `input_audio_transcription` field
- * is omitted entirely (probed 2026-05-25: works identically to an
- * explicit `ja` code, matches the existing app UX where source is never
- * surfaced to the user).
+ * Source language: REQUIRED. Auto-detect (omitting input_audio_transcription)
+ * works in lab benchmarks but fails on real-device mic input — only one
+ * segment translates then the stream stalls. User reported 2026-05-25 on
+ * iPhone v0.4.2. Reverted to explicit `input_audio_transcription.language`.
  *
  * Event mapping:
  *   response.text.delta             → onProvisional
@@ -42,6 +42,7 @@ export type QwenStatus = "connecting" | "ready" | "closed" | "error";
 
 export interface QwenRealtimeConfig {
   apiKey: string;
+  sourceLanguage: string;
   targetLanguage: string;
 }
 
@@ -95,12 +96,18 @@ export class QwenRealtimeClient {
 
     ws.onopen = () => {
       this.connected = true;
+      // Qwen rejects "auto" for source language. Default to English if the
+      // user hasn't picked one explicitly (shared global default is "auto").
+      const sourceLang =
+        cfg.sourceLanguage && cfg.sourceLanguage !== "auto"
+          ? cfg.sourceLanguage
+          : "en";
       const sessionUpdate = {
         type: "session.update",
         session: {
           modalities: ["text"],
           input_audio_format: "pcm",
-          // input_audio_transcription omitted → server auto-detects source.
+          input_audio_transcription: { language: sourceLang },
           translation: { language: cfg.targetLanguage },
           // VAD is server-side — manual commits are rejected.
           turn_detection: null,
