@@ -217,7 +217,7 @@ function Header({
       <View className="flex-row items-center gap-2">
         <View className={dot} />
         <Text className="text-zinc-900 dark:text-zinc-100 font-medium">
-          {ENGINE_LABELS[engine]} · auto → {targetLang}
+          {ENGINE_LABELS[engine]} · {sourceLang} → {targetLang}
         </Text>
       </View>
       <View className="flex-row items-center gap-2">
