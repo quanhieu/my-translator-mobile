@@ -1,58 +1,54 @@
 /**
- * Qwen-Omni-Realtime translation client (direct WebSocket from device).
+ * Qwen LiveTranslate Flash Realtime translation client.
  *
  * Endpoint: wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime
- *           ?model=qwen3.5-omni-plus-realtime
+ *           ?model=qwen3-livetranslate-flash-realtime
  *
- * Auth: `Authorization: Bearer <DashScope key>` on the WS handshake — same
- * mechanism the OpenAI client relies on (RN passes a 3rd-arg `{ headers }`).
- * Verify on a physical iOS device before shipping.
+ * Auth: `Authorization: Bearer <DashScope key>` on the WS handshake.
  *
- * Turn control: server-VAD is DISABLED. Benchmarks showed Qwen's server-VAD
- * silently drops ~33-80% of translated content. Instead we run client-side
- * RMS-based silence detection and fire `input_audio_buffer.commit` +
- * `response.create` ourselves at natural pauses (or at MAX_WINDOW_MS).
- * Result: full coverage, ~2.3s first token, better pronoun continuity.
- * See plans/reports/benchmark-260523-0701-qwen-coherence-improvement.md.
+ * Turn control: server-side. The live model has its own VAD and streams
+ * responses continuously — manual `input_audio_buffer.commit` /
+ * `response.create` are rejected. We just append audio and let server
+ * decide segmentation. This replaces the omni-plus client-side RMS-VAD.
+ *
+ * Source language: auto-detected. The `input_audio_transcription` field
+ * is omitted entirely (probed 2026-05-25: works identically to an
+ * explicit `ja` code, matches the existing app UX where source is never
+ * surfaced to the user).
  *
  * Event mapping:
- *   conversation.item.input_audio_transcription.completed → onSourceProvisional / pendingSourceFinals
- *   response.text.delta | response.audio_transcript.delta → onProvisional
- *   response.text.done  | response.audio_transcript.done  → onSegment(src, tgt)
- *   response.audio.delta                                  → outputQueue.push(b64)
- *   error                                                 → onError
+ *   response.text.delta             → onProvisional
+ *   response.text.done              → onSegment("", tgt)
+ *   error                           → onError
  *
- * Audio: input pcm16 @ 16kHz mono (AudioCapture(16000)), output pcm @ 24kHz.
+ * Audio: input pcm16 @ 16kHz mono (AudioCapture(16000)). Output disabled
+ * — modalities locked to ["text"] (TTS playback would loop into mic).
+ *
+ * Migration notes vs prior omni-plus client:
+ *   - Model name: qwen3.5-omni-plus-realtime → qwen3-livetranslate-flash-realtime
+ *   - session.update payload: dropped `instructions`, `output_audio_format`;
+ *     added `translation.language`
+ *   - Removed all client-side RMS-VAD + manual commitTurn
+ *   - Removed audio output queue (text-only)
+ *   - Removed input_audio_transcription event handling (live model doesn't
+ *     emit transcription events for the source side — only translation)
+ *   - See plans/reports/benchmark-260525-1453-qwen-model-sweep.md
  */
 
-import type { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue";
-
 const QWEN_REALTIME_URL =
-  "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=qwen3.5-omni-plus-realtime";
-
-// Client-side RMS-VAD config — tuned on Hope-v2 benchmark (variant K).
-// SILENCE_RMS may need per-device calibration once we test on real mic.
-const SILENCE_RMS = 500; // int16 PCM amplitude
-const SILENCE_MS = 400; // sustained quiet → commit
-const MIN_WINDOW_MS = 2000;
-const MAX_WINDOW_MS = 7000;
-const SAMPLE_RATE = 16000;
-const BYTES_PER_SAMPLE = 2;
+  "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=qwen3-livetranslate-flash-realtime";
 
 export type QwenStatus = "connecting" | "ready" | "closed" | "error";
 
 export interface QwenRealtimeConfig {
   apiKey: string;
   targetLanguage: string;
-  targetLanguageName: string;
-  audioOutput?: boolean;
 }
 
 export interface QwenRealtimeCallbacks {
   onStatusChange?: (status: QwenStatus, message?: string) => void;
   onSegment?: (sourceText: string, translatedText: string) => void;
   onProvisional?: (text: string) => void;
-  onSourceProvisional?: (text: string) => void;
   onError?: (code: string, message: string) => void;
   onClosed?: (reason: string) => void;
 }
@@ -68,40 +64,17 @@ interface WSWithHeaders {
 export class QwenRealtimeClient {
   private ws: WebSocket | null = null;
   private connected = false;
-  private muted = false;
-  private outputQueue: OpenAiAudioOutputQueue | null = null;
 
   private provisionalBuffer = "";
-  private sourceBuffer = "";
-  // Source-language finals from STT, waiting to be paired with the next
-  // translated target final. STT + translation finalize independently.
-  private pendingSourceFinals: string[] = [];
-  // Guard: text + audio_transcript streams can both fire `.done` for one
-  // response — emit the segment only once per response id.
+  // Guard: response.text.done can fire twice for a single response when both
+  // text and audio_transcript streams complete — emit segment once.
   private lastDoneResponseId: string | null = null;
-
-  // RMS-VAD turn state — accumulates per-chunk and triggers manual commits.
-  private windowMs = 0;
-  private silenceMs = 0;
-  private hasAudioInWindow = false;
 
   constructor(public callbacks: QwenRealtimeCallbacks = {}) {}
 
-  setMuted(muted: boolean): void {
-    this.muted = muted;
-    if (muted) this.outputQueue?.flush();
-  }
-
-  connect(cfg: QwenRealtimeConfig, outputQueue: OpenAiAudioOutputQueue): void {
-    this.outputQueue = outputQueue;
-    this.muted = cfg.audioOutput === false;
+  connect(cfg: QwenRealtimeConfig): void {
     this.provisionalBuffer = "";
-    this.sourceBuffer = "";
-    this.pendingSourceFinals = [];
     this.lastDoneResponseId = null;
-    this.windowMs = 0;
-    this.silenceMs = 0;
-    this.hasAudioInWindow = false;
 
     this.callbacks.onStatusChange?.("connecting");
 
@@ -125,22 +98,11 @@ export class QwenRealtimeClient {
       const sessionUpdate = {
         type: "session.update",
         session: {
-          // Text-only: TTS playback loops back into the mic on this client,
-          // so we never request audio output — saves DashScope tokens too.
           modalities: ["text"],
           input_audio_format: "pcm",
-          output_audio_format: "pcm",
-          instructions:
-            `You are a professional simultaneous interpreter translating one ` +
-            `speaker's talk into ${cfg.targetLanguageName}. RULES: ` +
-            `(1) Use consistent singular pronouns for the speaker across ` +
-            `turns — refer to them the same way every time. ` +
-            `(2) Preserve continuity from earlier turns in this session; ` +
-            `if a sentence was cut mid-thought in a prior turn, continue ` +
-            `smoothly. (3) Translate EVERY utterance fully — never stay ` +
-            `silent. (4) Output ONLY the ${cfg.targetLanguageName} ` +
-            `translation, no source, no commentary.`,
-          // VAD disabled — client drives commits via RMS-VAD (see sendAudio).
+          // input_audio_transcription omitted → server auto-detects source.
+          translation: { language: cfg.targetLanguage },
+          // VAD is server-side — manual commits are rejected.
           turn_detection: null,
         },
       };
@@ -190,68 +152,17 @@ export class QwenRealtimeClient {
       );
     } catch {
       /* ignore — onclose / onerror will surface real failure */
-      return;
     }
-
-    // RMS-VAD turn control. Advance window/silence timers, fire commit at
-    // a natural pause once we've buffered enough audio.
-    const chunkMs = (pcm.byteLength / (SAMPLE_RATE * BYTES_PER_SAMPLE)) * 1000;
-    const energy = rmsInt16(pcm);
-    this.windowMs += chunkMs;
-    if (energy >= SILENCE_RMS) {
-      this.silenceMs = 0;
-      this.hasAudioInWindow = true;
-    } else {
-      this.silenceMs += chunkMs;
-    }
-
-    // Skip committing windows that contain only silence — avoids the
-    // pre-speech intro artifact ("Xin chào, tôi là trợ lý...") we saw in
-    // benchmarks when commit fires on empty audio.
-    if (!this.hasAudioInWindow) {
-      if (this.windowMs >= MAX_WINDOW_MS) {
-        this.windowMs = 0;
-        this.silenceMs = 0;
-      }
-      return;
-    }
-
-    const hitMax = this.windowMs >= MAX_WINDOW_MS;
-    const hitPause =
-      this.windowMs >= MIN_WINDOW_MS && this.silenceMs >= SILENCE_MS;
-    if (hitMax || hitPause) this.commitTurn();
-  }
-
-  private commitTurn(): void {
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
-    try {
-      this.ws.send(JSON.stringify({ type: "input_audio_buffer.commit" }));
-      this.ws.send(JSON.stringify({ type: "response.create" }));
-    } catch {
-      /* ignore — onclose / onerror will surface real failure */
-    }
-    this.windowMs = 0;
-    this.silenceMs = 0;
-    this.hasAudioInWindow = false;
   }
 
   /**
-   * Emit any in-flight buffers as a final segment so stop-mid-sentence text
-   * isn't silently dropped. Safe to call multiple times.
+   * Emit any in-flight provisional text as a final segment so stop-mid-
+   * sentence content isn't silently dropped. Safe to call multiple times.
    */
   flushPending(): void {
-    try {
-      while (this.pendingSourceFinals.length > 1) {
-        this.callbacks.onSegment?.(this.pendingSourceFinals.shift()!, "");
-      }
-      const tgt = this.provisionalBuffer;
-      const src = this.pendingSourceFinals.shift() ?? this.sourceBuffer;
-      this.provisionalBuffer = "";
-      this.sourceBuffer = "";
-      if (tgt || src) this.callbacks.onSegment?.(src, tgt);
-    } catch {
-      /* ignore */
-    }
+    const tgt = this.provisionalBuffer;
+    this.provisionalBuffer = "";
+    if (tgt) this.callbacks.onSegment?.("", tgt);
   }
 
   disconnect(): void {
@@ -259,9 +170,6 @@ export class QwenRealtimeClient {
       this.connected = false;
       return;
     }
-    // Commit any pending audio so the tail of the last sentence still gets
-    // translated. Only useful if the window had real speech.
-    if (this.hasAudioInWindow && this.windowMs > 0) this.commitTurn();
     this.connected = false;
     this.flushPending();
     try {
@@ -270,59 +178,19 @@ export class QwenRealtimeClient {
       /* ignore */
     }
     this.ws = null;
-    this.outputQueue?.flush();
   }
 
   private handleServerEvent(data: Record<string, unknown>): void {
     const type = data.type as string | undefined;
     if (!type) return;
-    // Verbose log for production debug — capture via Xcode Console.
-    console.log("[qwen-realtime] evt:", type);
+    console.log("[qwen-livetranslate] evt:", type);
 
     switch (type) {
       case "session.created":
-      case "session.updated": {
-        // Dump applied session config so we can verify instructions + modalities
-        // were accepted by the server.
-        const sess = (data as { session?: unknown }).session;
-        try {
-          console.log(
-            "[qwen-realtime]",
-            type,
-            JSON.stringify(sess).slice(0, 800),
-          );
-        } catch {
-          /* ignore */
-        }
-        break;
-      }
+      case "session.updated":
       case "response.created":
       case "response.done":
         break;
-
-      case "conversation.item.input_audio_transcription.completed": {
-        const text =
-          (data.transcript as string) ?? (data.text as string) ?? "";
-        console.log(
-          "[qwen-realtime] SRC",
-          (text || "").slice(0, 120),
-        );
-        if (text) {
-          this.pendingSourceFinals.push(text);
-          this.sourceBuffer = "";
-          this.callbacks.onSourceProvisional?.(text);
-        }
-        break;
-      }
-
-      case "conversation.item.input_audio_transcription.failed": {
-        const err = (data.error ?? {}) as { code?: string; message?: string };
-        this.callbacks.onError?.(
-          "transcription_failed",
-          err.message ?? "Transcription failed",
-        );
-        break;
-      }
 
       case "response.text.delta":
       case "response.audio_transcript.delta": {
@@ -338,7 +206,6 @@ export class QwenRealtimeClient {
       case "response.audio_transcript.done": {
         const responseId =
           (data.response_id as string) ?? (data.item_id as string) ?? null;
-        // text + audio_transcript both finalize one response — emit once.
         if (responseId && responseId === this.lastDoneResponseId) break;
         this.lastDoneResponseId = responseId;
 
@@ -346,25 +213,8 @@ export class QwenRealtimeClient {
           (data.text as string) ??
           (data.transcript as string) ??
           this.provisionalBuffer;
-        console.log(
-          "[qwen-realtime] DONE",
-          type,
-          "text=",
-          (text || "").slice(0, 120),
-        );
-        const sourceText =
-          this.pendingSourceFinals.shift() ?? this.sourceBuffer;
         this.provisionalBuffer = "";
-        this.sourceBuffer = "";
-        if (text || sourceText) {
-          this.callbacks.onSegment?.(sourceText, text);
-        }
-        break;
-      }
-
-      case "response.audio.delta": {
-        const b64 = data.delta as string | undefined;
-        if (b64 && !this.muted) this.outputQueue?.push(b64);
+        if (text) this.callbacks.onSegment?.("", text);
         break;
       }
 
@@ -378,7 +228,6 @@ export class QwenRealtimeClient {
       }
 
       default:
-        // Unknown / no-op event (input_audio_buffer.*, etc.) — keep parsing.
         break;
     }
   }
@@ -393,19 +242,6 @@ function friendlyError(code?: string, message?: string): string {
   if (c.includes("model") && c.includes("not"))
     return "Qwen Realtime model unavailable.";
   return message ?? "Qwen Realtime error.";
-}
-
-/** RMS amplitude of int16 little-endian PCM in an ArrayBuffer. */
-function rmsInt16(buf: ArrayBuffer): number {
-  const view = new DataView(buf);
-  const n = Math.floor(buf.byteLength / 2);
-  if (!n) return 0;
-  let sum = 0;
-  for (let i = 0; i < n; i++) {
-    const s = view.getInt16(i * 2, true);
-    sum += s * s;
-  }
-  return Math.sqrt(sum / n);
 }
 
 function arrayBufferToBase64(buf: ArrayBuffer): string {

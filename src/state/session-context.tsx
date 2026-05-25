@@ -26,7 +26,6 @@ import { hapticError, hapticStart, hapticStop } from "@/src/lib/haptics";
 import { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue";
 import { autoNameSession, saveSession } from "@/src/lib/history-store";
 import { pickKeyForModel } from "@/src/lib/openai-chat";
-import { QWEN_LANGS, langName } from "@/src/lib/languages";
 import type { SessionMeta, SessionStatus, TranscriptRow } from "@/src/types";
 import { useSettings } from "@/src/state/settings-context";
 
@@ -367,7 +366,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
     setStatus("connecting");
 
-    // Qwen-Omni Realtime input is pcm16 @ 16kHz (output is 24kHz).
+    // Qwen LiveTranslate input is pcm16 @ 16kHz. Text-only — no output queue.
     const capture = new AudioCapture(16000);
     const granted = await capture.requestPermission();
     if (!granted) {
@@ -376,7 +375,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const queue = new OpenAiAudioOutputQueue();
     const client = new QwenRealtimeClient({
       onStatusChange: (s, msg) => {
         setStatus(mapQwenStatus(s));
@@ -387,14 +385,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       },
       onClosed: () => {
         // onclose runs after disconnect() too — only surface unintended closes.
-      },
-      onSourceProvisional: (text) => {
-        const id = provisionalIdRef.current;
-        if (!id) return;
-        const next = rowsRef.current.map((r) =>
-          r.id === id ? { ...r, source: text } : r,
-        );
-        replaceRows(next);
       },
       onProvisional: (text) => upsertProvisional(text),
       onSegment: (src, tgt) => {
@@ -410,7 +400,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
 
     qwenRef.current = client;
-    outputQueueRef.current = queue;
     captureRef.current = capture;
 
     try {
@@ -422,17 +411,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    queue.setMuted(muted);
-    client.setMuted(muted);
-    client.connect(
-      {
-        apiKey: qwenKey,
-        targetLanguage: targetLang,
-        targetLanguageName: langName(targetLang, QWEN_LANGS),
-        audioOutput: !muted,
-      },
-      queue,
-    );
+    client.connect({
+      apiKey: qwenKey,
+      targetLanguage: targetLang,
+    });
   };
 
   const start = async () => {
@@ -491,7 +473,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const setMuted = (m: boolean) => {
     setMutedState(m);
     openaiRef.current?.setMuted(m);
-    qwenRef.current?.setMuted(m);
     outputQueueRef.current?.setMuted(m);
   };
 
