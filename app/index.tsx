@@ -79,14 +79,16 @@ export default function TranslateScreen() {
 
       <View className="flex-row items-center justify-between px-4 py-2 border-b border-zinc-100 dark:border-zinc-900">
         <View className="flex-row items-center gap-2">
-          <Pressable
-            onPress={() => setPanelMode(panelMode === "single" ? "dual" : "single")}
-            className="px-2 py-1 rounded-md border border-zinc-300 dark:border-zinc-700"
-          >
-            <Text className="text-zinc-700 dark:text-zinc-300 text-xs">
-              {panelMode === "dual" ? "Single panel" : "Dual panel"}
-            </Text>
-          </Pressable>
+          {engine === "qwen" ? null : (
+            <Pressable
+              onPress={() => setPanelMode(panelMode === "single" ? "dual" : "single")}
+              className="px-2 py-1 rounded-md border border-zinc-300 dark:border-zinc-700"
+            >
+              <Text className="text-zinc-700 dark:text-zinc-300 text-xs">
+                {panelMode === "dual" ? "Single panel" : "Dual panel"}
+              </Text>
+            </Pressable>
+          )}
           <Pressable
             onPress={clear}
             disabled={rows.length === 0}
@@ -156,7 +158,11 @@ export default function TranslateScreen() {
           </Text>
         </View>
       ) : (
-        <TranscriptStream rows={rows} fontSize={fontSize} panelMode={panelMode} />
+        <TranscriptStream
+          rows={rows}
+          fontSize={fontSize}
+          panelMode={engine === "qwen" ? "single" : panelMode}
+        />
       )}
 
       {status === "idle" && rows.some((r) => !r.isProvisional && r.translation) ? (
