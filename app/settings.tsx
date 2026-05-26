@@ -121,8 +121,8 @@ export default function SettingsScreen() {
             {engine === "soniox"
               ? "Soniox · ~$0.12/hr · text-only"
               : engine === "openai"
-                ? "OpenAI Realtime · ~$4/hr · text + voice"
-                : "Qwen-Omni Realtime · free preview · text + voice"}
+                ? "OpenAI Realtime · ~$4/hr · most natural translation"
+                : "Qwen Live Flash · free preview · fastest, 60+ langs"}
           </Text>
         </Section>
 
@@ -190,8 +190,9 @@ export default function SettingsScreen() {
               className="border border-zinc-300 dark:border-zinc-700 rounded-lg px-3 py-2 text-zinc-900 dark:text-zinc-100"
             />
             <Text className="text-zinc-500 text-xs mt-1">
-              Get a key at Alibaba Cloud Model Studio. Qwen-Omni Realtime is in a
-              free preview — pricing may change once it leaves preview.
+              Get a key at Alibaba Cloud Model Studio (Singapore region). Qwen
+              Live Flash is in free preview — pricing may change once it leaves
+              preview. Pick a source language above; auto-detect is unreliable.
             </Text>
           </Section>
         ) : null}

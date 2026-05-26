@@ -34,12 +34,13 @@ A lightweight stand-in for a human cabin (booth) interpreter when there isn't on
 
 1. Open the app — it sends you straight to **Settings** (no API key saved yet).
 2. Paste **one** API key:
-   - **Soniox** — get one at <https://console.soniox.com>. Cheap (~$0.12/hr), text only. **Recommended.**
-   - **OpenAI** — get one at <https://platform.openai.com/api-keys>. ~$4/hr, adds spoken voice. Tip: set a low monthly cap.
-   - **Qwen** — get a DashScope key at <https://bailian.console.alibabacloud.com>. Adds spoken voice; currently a **free preview** (pricing may change once it leaves preview).
+   - **Soniox** — get one at <https://console.soniox.com>. Cheap (~$0.12/hr), text only. **Recommended for budget.**
+   - **OpenAI** — get one at <https://platform.openai.com/api-keys>. ~$4/hr, highest translation quality. Tip: set a low monthly cap.
+   - **Qwen** — get a DashScope key (Singapore region) at <https://bailian.console.alibabacloud.com>. Currently a **free preview**, fastest streaming. Source language must be picked explicitly.
 
    Hướng dẫn chi tiết bằng tiếng Việt: [docs/api-key-guide-vi.md](docs/api-key-guide-vi.md)
-3. Pick your **target** language (the spoken language is auto-detected).
+   So sánh chi tiết các engine: [docs/engine-comparison-vi.md](docs/engine-comparison-vi.md)
+3. Pick your **source** and **target** language from the dropdowns (60+ languages on Qwen, auto-detect on Soniox/OpenAI).
 4. Back on the main screen, tap **Start**, allow the microphone, and listen.
 
 After **Stop** you can **Copy** / **Share** the transcript, or **Summarize** the
@@ -70,15 +71,17 @@ latest over-the-air JS bundle.
 
 ## Engines
 
-| Engine | Cost | Output |
-| --- | --- | --- |
-| **Soniox** | ~$0.12/hr | On-screen translated text |
-| **OpenAI Realtime** | ~$4/hr | On-screen translated text |
-| **Qwen-Omni Realtime** | Free preview | On-screen translated text |
+| Engine | Cost | First final (≈) | Strength | Source transcript |
+| --- | --- | ---: | --- | --- |
+| **Soniox** | ~$0.12/hr | ~3s | Cheapest, stable | Yes (dual panel) |
+| **OpenAI Realtime** | ~$4/hr | ~7s | Most natural translation | Yes (dual panel) |
+| **Qwen Live Flash** | Free preview | **~4s** | Fastest streaming, 60+ langs | No (translation-only) |
 
-Source language is auto-detected — you only pick a target. Spoken voice
-output is disabled on this client (the speaker echoes back into the mic and
-causes a translation loop) — translations are read on screen.
+Soniox + OpenAI auto-detect the spoken language. Qwen Live needs an explicit
+source language (auto isn't reliable on real mic input). Spoken voice output is
+disabled (the speaker echoes back into the mic and causes a translation loop)
+— translations are read on screen only. Full comparison:
+[docs/engine-comparison-vi.md](docs/engine-comparison-vi.md).
 
 ---
 
@@ -128,7 +131,8 @@ eas build --profile production --platform android
 ```
 app/        Expo Router screens (index = translate, settings, history, exports)
 src/
-  engines/    soniox-client.ts, openai-realtime-client.ts, qwen-realtime-client.ts
+  engines/    soniox-client.ts, openai-realtime-client.ts,
+              qwen-realtime-client.ts (qwen3-livetranslate-flash-realtime)
   lib/        audio-capture, audio-output-queue, secure-keys, languages,
               history-store, session-export, haptics, ota-update
   components/ transcript-stream.tsx, session-detail-view, icon-button

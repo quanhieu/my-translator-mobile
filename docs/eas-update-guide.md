@@ -36,8 +36,10 @@ eas update --channel preview --message "test: <short description>"
 
 **Runtime gating:** an installed build only accepts an update whose target
 runtimeVersion matches the build's embedded runtimeVersion. With the `appVersion`
-policy that value is `expo.version` (currently `0.1.0`). Builds with a different
+policy that value is `expo.version` (currently **`0.4.3`**). Builds with a different
 `expo.version` will NOT receive the update (`updateRejectedBySelectionPolicy`).
+Bump `expo.version` only when you intend to cut a fresh runtime channel
+(e.g. shipping a native change).
 
 Apps fetch the update on cold start and apply it on the **next** launch.
 
@@ -60,7 +62,7 @@ Pre-publish checklist — if you answer "yes" to ANY, it is a rebuild, not an OT
 
 ## 4. runtimeVersion ↔ appVersionSource interaction
 
-- `appVersion` policy keys runtimeVersion off `expo.version` (`0.1.0`).
+- `appVersion` policy keys runtimeVersion off `expo.version` (`0.4.3`).
 - `eas.json` has `appVersionSource: "remote"` + `autoIncrement` on production.
   Those only bump iOS `buildNumber` / Android `versionCode` on EAS servers —
   they do **not** touch `expo.version`.

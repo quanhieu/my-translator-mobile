@@ -8,9 +8,11 @@ Chỉ cần **một** trong ba key là dùng được.
 
 | Nhà cung cấp | Giá tham khảo | Đầu ra | Gợi ý |
 | --- | --- | --- | --- |
-| **Soniox** | ~$0.12/giờ | Văn bản dịch trên màn hình | Rẻ, **nên dùng** |
-| **OpenAI Realtime** | ~$4/giờ | Văn bản dịch trên màn hình | Chất lượng dịch cao |
-| **Qwen-Omni Realtime** | Bản xem trước miễn phí | Văn bản dịch trên màn hình | Đang miễn phí, giá có thể đổi |
+| **Soniox** | ~$0.12/giờ | Văn bản dịch trên màn hình | Rẻ, **nên dùng cho nhu cầu thường xuyên** |
+| **OpenAI Realtime** | ~$4/giờ | Văn bản dịch trên màn hình | **Chất lượng dịch tự nhiên nhất** |
+| **Qwen Live Flash** | Bản xem trước miễn phí | Văn bản dịch trên màn hình | **Nhanh nhất, miễn phí**, 60+ ngôn ngữ |
+
+> So sánh chi tiết để chọn engine phù hợp: [engine-comparison-vi.md](engine-comparison-vi.md)
 
 > Từ bản 0.4.2, giọng đọc tự động (TTS) đã được tắt ở cả OpenAI và Qwen vì
 > loa máy phát ra sẽ vọng lại vào mic và gây lặp vô hạn. Bản dịch chỉ hiển
@@ -51,6 +53,9 @@ Chỉ cần **một** trong ba key là dùng được.
 
 ## 3. Qwen / DashScope (miễn phí, đang preview)
 
+> Từ bản **0.4.3** app dùng model `qwen3-livetranslate-flash-realtime` (Qwen Live
+> Flash) — nhanh hơn và mượt hơn model Omni cũ. Chi tiết: [engine-comparison-vi.md](engine-comparison-vi.md).
+
 > ⚠️ **QUAN TRỌNG — phải chọn region Singapore.** App kết nối tới endpoint
 > quốc tế `dashscope-intl.aliyuncs.com`. Key tạo ở region khác (China Beijing,
 > Hong Kong, US Virginia, Germany Frankfurt) sẽ bị reject và app báo
@@ -67,20 +72,36 @@ Chỉ cần **một** trong ba key là dùng được.
    dịch vụ **Model Studio (DashScope)** nếu được nhắc.
 4. Vào mục **API Keys**, bấm **Create API Key**, đặt tên bất kỳ.
 5. **Sao chép key ngay** — chỉ hiển thị đầy đủ một lần.
-6. Mở app My Translator → màn hình **Settings** → chọn engine **Qwen**, chọn
-   ngôn ngữ đích, rồi dán key vào ô **Qwen (DashScope)** như ảnh dưới.
+6. Mở app My Translator → màn hình **Settings** → chọn engine **Qwen**, **chọn
+   source language** (bắt buộc — Qwen Live không hỗ trợ auto-detect ổn định
+   trên mic thật), chọn target language, rồi dán key vào ô **Qwen (DashScope)**.
 
-![Settings — Qwen engine, target language, DashScope key, assistant model](user_manual/qwen_setting.jpeg)
+![Settings — Qwen engine, source language Japanese, target Vietnamese, DashScope key, assistant model](user_manual/qwen_setting.jpeg)
 
-> Qwen-Omni Realtime hiện ở giai đoạn **xem trước (preview)** và miễn phí gọi
-> mô hình. Giá có thể thay đổi khi rời preview — theo dõi thông báo của Alibaba Cloud.
+Bấm vào ô **Source language** sẽ mở một picker tìm kiếm với 60+ ngôn ngữ:
+
+<p align="center">
+  <img src="user_manual/qwen_source_lang_picker.jpg" width="280" alt="Source language picker — danh sách 60+ ngôn ngữ" />
+  &nbsp;
+  <img src="user_manual/qwen_lang_picker_search.jpg" width="280" alt="Search filter — gõ vài ký tự để lọc nhanh" />
+</p>
+
+> **Lưu ý Qwen Live Flash**:
+> - **Phải chọn source language** trước khi Start (Settings → Source language).
+>   Không như Soniox/OpenAI có auto-detect, Qwen Live cần biết rõ ngôn ngữ
+>   nguồn (60+ ngôn ngữ trong dropdown — có ô search để lọc nhanh).
+> - **Không có dual panel** (model chỉ trả về translation, không có source
+>   transcript). Toggle dual panel sẽ bị ẩn tự động khi chọn Qwen.
+> - Hiện ở giai đoạn **preview (miễn phí)**. Giá có thể thay đổi khi rời
+>   preview — theo dõi thông báo của Alibaba Cloud.
 
 ### Khắc phục lỗi `WebSocket error` khi dùng Qwen
 
 | Triệu chứng | Nguyên nhân thường gặp | Cách sửa |
 | --- | --- | --- |
 | Báo `WebSocket error` ngay khi bấm Start | Key tạo ở region khác Singapore | Tạo lại key ở region Singapore (xem mục 2 ở trên) |
-| Báo lỗi sau ~5–10 giây | Key đúng region nhưng chưa kích hoạt model Qwen-Omni Realtime | Vào Model Studio → Model Square → bật `qwen3-omni-flash-realtime` |
+| Báo lỗi sau ~5–10 giây | Key đúng region nhưng chưa kích hoạt model Qwen Live | Vào Model Studio → Model Square → bật `qwen3-livetranslate-flash-realtime` |
+| Dịch được 1 câu rồi stall | Source language để "auto" thay vì chọn rõ ngôn ngữ | Settings → Source language → chọn cụ thể (vd: Japanese) |
 | Báo lỗi không ổn định | Mạng chặn `dashscope-intl.aliyuncs.com` (firewall công ty / VPN) | Thử mạng khác (4G/5G) hoặc tắt VPN |
 
 ---
