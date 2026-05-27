@@ -90,6 +90,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const replaceRows = (next: TranscriptRow[]) => {
     if (next.length > MAX_ROWS) next.splice(0, next.length - MAX_ROWS);
     rowsRef.current = next;
+    console.log("[replaceRows] setting rows, count:", next.length);
     setRows(next);
   };
 
@@ -98,6 +99,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   };
 
   const upsertProvisional = (text: string) => {
+    console.log("[upsertProvisional] called with text length:", text?.length, "current rows:", rowsRef.current.length);
     const id = provisionalIdRef.current;
     if (!text) {
       if (!id) return;
@@ -114,6 +116,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } else {
       const newId = `prov-${Date.now()}`;
       provisionalIdRef.current = newId;
+      console.log("[upsertProvisional] creating new provisional row:", newId);
       pushRow({
         id: newId,
         translation: text,
@@ -227,18 +230,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const ttsFailuresRef = useRef(0);
   const MAX_TTS_FAILURES = 999; // temporarily disable auto-off for debugging
 
+  // Use refs for TTS settings so speakTTS always gets latest values
+  const ttsSettingsRef = useRef({ ttsProvider, ttsMuted, ttsRate, targetLang });
+  ttsSettingsRef.current = { ttsProvider, ttsMuted, ttsRate, targetLang };
+
   // TTS completely isolated from STT - crash in TTS never affects STT
   const speakTTS = (text: string) => {
     try {
-      if (ttsProvider !== "edge" || ttsMuted || !text.trim()) return;
+      const { ttsProvider: provider, ttsMuted: muted, ttsRate: rate, targetLang: lang } = ttsSettingsRef.current;
+      if (provider !== "edge" || muted || !text.trim()) return;
       if (ttsFailuresRef.current >= MAX_TTS_FAILURES) return;
 
       // Fire-and-forget with full isolation
       setTimeout(() => {
         (async () => {
           try {
-            const voice = getEdgeTTSVoice(targetLang);
-            edgeTTS.configure({ voice, rate: ttsRate });
+            const voice = getEdgeTTSVoice(lang);
+            edgeTTS.configure({ voice, rate });
             const audio = await edgeTTS.speak(text);
             await edgeTTSPlayer.enqueue(audio);
             ttsFailuresRef.current = 0;

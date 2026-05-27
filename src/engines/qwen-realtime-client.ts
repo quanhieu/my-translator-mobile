@@ -212,7 +212,11 @@ export class QwenRealtimeClient {
         const snapshot = committed + stash;
         if (snapshot) {
           this.provisionalBuffer = snapshot;
-          this.callbacks.onProvisional?.(snapshot);
+          if (this.callbacks.onProvisional) {
+            this.callbacks.onProvisional(snapshot);
+          } else {
+            console.warn("[Qwen] onProvisional callback is null/undefined");
+          }
         }
         break;
       }
@@ -225,7 +229,13 @@ export class QwenRealtimeClient {
 
         const text = (data.text as string) ?? this.provisionalBuffer;
         this.provisionalBuffer = "";
-        if (text) this.callbacks.onSegment?.("", text);
+        if (text) {
+          if (this.callbacks.onSegment) {
+            this.callbacks.onSegment("", text);
+          } else {
+            console.warn("[Qwen] onSegment callback is null/undefined");
+          }
+        }
         break;
       }
 
