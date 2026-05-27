@@ -22,10 +22,7 @@ import {
 } from "expo-keep-awake";
 
 import { AudioCapture } from "@/src/lib/audio-capture";
-import { edgeTTS } from "@/src/engines/edge-tts-client";
-import { edgeTTSPlayer } from "@/src/lib/edge-tts-audio-player";
 import { hapticError, hapticStart, hapticStop } from "@/src/lib/haptics";
-import { getEdgeTTSVoice } from "@/src/lib/languages";
 import { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue";
 import { autoNameSession, saveSession } from "@/src/lib/history-store";
 import { pickKeyForModel } from "@/src/lib/openai-chat";
@@ -66,8 +63,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     chatModel,
     ttsProvider,
     ttsRate,
+    ttsVoice,
     ttsMuted,
-    setTTSProvider,
   } = useSettings();
 
   const [status, setStatus] = useState<SessionStatus>("idle");
@@ -223,25 +220,36 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // TTS: consecutive failure tracking for auto-disable
-  const ttsFailuresRef = useRef(0);
-  const MAX_TTS_FAILURES = 3;
-
   const speakTTS = async (text: string) => {
-    if (ttsProvider !== "edge" || ttsMuted || !text.trim()) return;
-    if (ttsFailuresRef.current >= MAX_TTS_FAILURES) return;
+    console.log("[TTS] speakTTS", { ttsProvider, ttsMuted, text: text.slice(0, 30) });
+    if (ttsProvider === "none" || ttsMuted || !text.trim()) return;
 
-    try {
-      const voice = getEdgeTTSVoice(targetLang);
-      edgeTTS.configure({ voice, rate: ttsRate });
-      const audio = await edgeTTS.speak(text);
-      await edgeTTSPlayer.enqueue(audio);
-      ttsFailuresRef.current = 0;
-    } catch (err) {
-      ttsFailuresRef.current++;
-      console.warn("[TTS] Error:", (err as Error).message);
-      if (ttsFailuresRef.current >= MAX_TTS_FAILURES) {
-        setTTSProvider("none");
+    if (ttsProvider === "device") {
+      try {
+        console.log("[TTS] Using device voice");
+        const Speech = await import("expo-speech");
+        Speech.speak(text, {
+          language: targetLang,
+          rate: 1 + ttsRate / 100,
+        });
+      } catch (err) {
+        console.warn("[TTS] Device error:", (err as Error).message);
+      }
+    } else if (ttsProvider === "edge") {
+      try {
+        console.log("[TTS] Using Edge TTS");
+        const { edgeTTS } = await import("@/src/engines/edge-tts-client");
+        const { edgeTTSPlayer } = await import(
+          "@/src/lib/edge-tts-audio-player"
+        );
+        const { getDefaultVoice } = await import("@/src/lib/edge-tts-voices");
+        const voice = ttsVoice || getDefaultVoice(targetLang);
+        edgeTTS.configure({ voice, rate: ttsRate });
+        const audio = await edgeTTS.speak(text);
+        console.log("[TTS] Edge audio received", audio.length);
+        await edgeTTSPlayer.enqueue(audio);
+      } catch (err) {
+        console.warn("[TTS] Edge error:", (err as Error).message);
       }
     }
   };

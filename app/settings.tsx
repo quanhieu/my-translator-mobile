@@ -25,6 +25,7 @@ import {
   type Language,
 } from "@/src/lib/languages";
 import { clearAllPrefs, clearAllSecureKeys } from "@/src/lib/secure-keys";
+import { getVoicesForLang, getDefaultVoice } from "@/src/lib/edge-tts-voices";
 import { useSettings } from "@/src/state/settings-context";
 import type { Engine } from "@/src/types";
 
@@ -55,6 +56,7 @@ export default function SettingsScreen() {
     chatModel,
     ttsProvider,
     ttsRate,
+    ttsVoice,
     setSonioxKey,
     setOpenaiKey,
     setQwenKey,
@@ -64,6 +66,7 @@ export default function SettingsScreen() {
     setChatModel,
     setTTSProvider,
     setTTSRate,
+    setTTSVoice,
   } = useSettings();
 
   const langs: Language[] = langsForEngine(engine);
@@ -227,12 +230,24 @@ export default function SettingsScreen() {
               onPress={() => setTTSProvider("none")}
             />
             <Choice
+              label="Device"
+              active={ttsProvider === "device"}
+              onPress={() => setTTSProvider("device")}
+            />
+            <Choice
               label="Edge TTS"
               active={ttsProvider === "edge"}
               onPress={() => setTTSProvider("edge")}
             />
           </Row>
           {ttsProvider === "edge" ? (
+            <EdgeVoicePicker
+              targetLang={targetLang}
+              selectedVoice={ttsVoice}
+              onSelect={setTTSVoice}
+            />
+          ) : null}
+          {ttsProvider !== "none" ? (
             <View className="mt-3">
               <Text className="text-zinc-700 dark:text-zinc-300 text-sm mb-2">
                 Speed: {ttsRate >= 0 ? `+${ttsRate}%` : `${ttsRate}%`}
@@ -260,9 +275,11 @@ export default function SettingsScreen() {
             </View>
           ) : null}
           <Text className="text-zinc-500 text-xs mt-2">
-            {ttsProvider === "edge"
-              ? "Free Microsoft Edge TTS. Voice auto-matches target language."
-              : "Enable to hear translated text spoken aloud."}
+            {ttsProvider === "device"
+              ? "Uses iOS native voice. Quality depends on installed voices."
+              : ttsProvider === "edge"
+                ? "Free Microsoft Edge TTS. Select voice for target language."
+                : "Enable to hear translated text spoken aloud."}
           </Text>
         </Section>
 
@@ -386,6 +403,49 @@ function Choice({
   );
 }
 
+function EdgeVoicePicker({
+  targetLang,
+  selectedVoice,
+  onSelect,
+}: {
+  targetLang: string;
+  selectedVoice: string;
+  onSelect: (v: string) => void;
+}) {
+  const voices = getVoicesForLang(targetLang);
+  const currentVoice = selectedVoice || getDefaultVoice(targetLang);
+
+  return (
+    <View className="mt-3">
+      <Text className="text-zinc-700 dark:text-zinc-300 text-sm mb-2">
+        Voice
+      </Text>
+      <View className="flex-row flex-wrap gap-2">
+        {voices.map((v) => (
+          <Pressable
+            key={v.id}
+            onPress={() => onSelect(v.id)}
+            className={
+              currentVoice === v.id
+                ? "px-3 py-2 rounded-lg bg-zinc-900 dark:bg-white"
+                : "px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700"
+            }
+          >
+            <Text
+              className={
+                currentVoice === v.id
+                  ? "text-white dark:text-zinc-900 font-medium"
+                  : "text-zinc-900 dark:text-zinc-100"
+              }
+            >
+              {v.name} {v.gender === "male" ? "♂" : "♀"}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 // Re-export so type imports stay co-located with consumers if needed later.
 export type { Engine };

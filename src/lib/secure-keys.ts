@@ -45,6 +45,7 @@ const PREF_KEYS = {
   chatModel: "pref.chatModel",
   ttsProvider: "pref.ttsProvider",
   ttsRate: "pref.ttsRate",
+  ttsVoice: "pref.ttsVoice",
   ttsMuted: "pref.ttsMuted",
 } as const;
 

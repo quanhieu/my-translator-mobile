@@ -3,9 +3,8 @@
  * Queue-based playback for sequential TTS segments.
  */
 
-import { useAudioPlayer, AudioPlayer } from "expo-audio";
+import type { AudioPlayer } from "expo-audio";
 import { File, Paths } from "expo-file-system";
-import { Platform } from "react-native";
 
 export class EdgeTTSAudioPlayer {
   private queue: string[] = [];
@@ -47,7 +46,7 @@ export class EdgeTTSAudioPlayer {
           player.release();
           try {
             if (file.exists) file.delete();
-          } catch {
+          } catch (_) {
             /* ignore cleanup errors */
           }
           this.currentPlayer = null;
@@ -69,7 +68,7 @@ export class EdgeTTSAudioPlayer {
       try {
         this.currentPlayer.pause();
         this.currentPlayer.release();
-      } catch {
+      } catch (_) {
         /* ignore */
       }
       this.currentPlayer = null;

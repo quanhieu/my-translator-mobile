@@ -10,7 +10,6 @@ const BASE_URL =
   "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1";
 const TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4";
 const CHROMIUM_FULL_VERSION = "143.0.3650.75";
-const CHROMIUM_MAJOR_VERSION = "143";
 const WIN_EPOCH = 11644473600;
 const WS_TIMEOUT_MS = 10000;
 
@@ -28,16 +27,6 @@ function generateSecMsGec(): string {
   const ticksNs = ticks * 1e7;
   const strToHash = `${ticksNs.toFixed(0)}${TRUSTED_CLIENT_TOKEN}`;
   return sha256(strToHash).toUpperCase();
-}
-
-function generateMuid(): string {
-  const bytes = new Uint8Array(16);
-  for (let i = 0; i < 16; i++) {
-    bytes[i] = Math.floor(Math.random() * 256);
-  }
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
-    .join("");
 }
 
 function generateRequestId(): string {
@@ -82,14 +71,6 @@ function uint8ToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-interface WSWithHeaders {
-  new (
-    url: string,
-    protocols?: string | string[] | null,
-    options?: { headers?: Record<string, string> },
-  ): WebSocket;
-}
-
 export class EdgeTTSClient {
   private voice = "vi-VN-NamMinhNeural";
   private rate = 20;
@@ -131,7 +112,6 @@ export class EdgeTTSClient {
     const requestId = generateRequestId();
     const secMsGec = generateSecMsGec();
     const secMsGecVersion = `1-${CHROMIUM_FULL_VERSION}`;
-    const muid = generateMuid();
 
     const url =
       `${BASE_URL}?TrustedClientToken=${TRUSTED_CLIENT_TOKEN}` +
@@ -139,18 +119,9 @@ export class EdgeTTSClient {
       `&Sec-MS-GEC-Version=${secMsGecVersion}`;
 
     return new Promise((resolve, reject) => {
-      const headers: Record<string, string> = {
-        Origin: "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold",
-        "User-Agent": `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROMIUM_MAJOR_VERSION}.0.0.0 Safari/537.36 Edg/${CHROMIUM_MAJOR_VERSION}.0.0.0`,
-        Pragma: "no-cache",
-        "Cache-Control": "no-cache",
-        "Accept-Encoding": "gzip, deflate, br, zstd",
-        "Accept-Language": "en-US,en;q=0.9",
-        Cookie: `muid=${muid};`,
-      };
-
-      const WSCtor = WebSocket as unknown as WSWithHeaders;
-      const ws = new WSCtor(url, null, { headers });
+      // React Native WebSocket doesn't support custom headers.
+      // Edge TTS works without them - the token in URL is sufficient.
+      const ws = new WebSocket(url);
       this.ws = ws;
 
       const audioChunks: Uint8Array[] = [];

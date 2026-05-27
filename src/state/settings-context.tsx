@@ -15,7 +15,7 @@ import {
 } from "@/src/lib/secure-keys";
 import type { Engine, LangCode, PanelMode } from "@/src/types";
 
-export type TTSProvider = "none" | "edge";
+export type TTSProvider = "none" | "device" | "edge";
 
 interface SettingsState {
   sonioxKey: string;
@@ -29,6 +29,7 @@ interface SettingsState {
   chatModel: string;
   ttsProvider: TTSProvider;
   ttsRate: number;
+  ttsVoice: string;
   ttsMuted: boolean;
   loaded: boolean;
 }
@@ -45,6 +46,7 @@ interface SettingsActions {
   setChatModel: (v: string) => void;
   setTTSProvider: (v: TTSProvider) => void;
   setTTSRate: (v: number) => void;
+  setTTSVoice: (v: string) => void;
   setTTSMuted: (v: boolean) => void;
 }
 
@@ -64,6 +66,7 @@ const DEFAULT_STATE: SettingsState = {
   chatModel: DEFAULT_CHAT_MODEL,
   ttsProvider: "none",
   ttsRate: 20,
+  ttsVoice: "",
   ttsMuted: false,
   loaded: false,
 };
@@ -89,6 +92,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         chatModel,
         ttsProvider,
         ttsRate,
+        ttsVoice,
         ttsMuted,
       ] = await Promise.all([
         getSecureKey("soniox"),
@@ -102,6 +106,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         getPref("chatModel"),
         getPref("ttsProvider"),
         getPref("ttsRate"),
+        getPref("ttsVoice"),
         getPref("ttsMuted"),
       ]);
       setState({
@@ -116,10 +121,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
           ? parseInt(fontSize, 10) || DEFAULT_STATE.fontSize
           : DEFAULT_STATE.fontSize,
         chatModel: chatModel || DEFAULT_STATE.chatModel,
-        ttsProvider: ttsProvider === "edge" ? "edge" : "none",
+        ttsProvider:
+          ttsProvider === "edge"
+            ? "edge"
+            : ttsProvider === "device"
+              ? "device"
+              : "none",
         ttsRate: ttsRate
           ? parseInt(ttsRate, 10) || DEFAULT_STATE.ttsRate
           : DEFAULT_STATE.ttsRate,
+        ttsVoice: ttsVoice ?? "",
         ttsMuted: ttsMuted === "true",
         loaded: true,
       });
@@ -170,6 +181,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, ttsRate: v }));
     setPref("ttsRate", String(v)).catch(() => {});
   };
+  const setTTSVoice = (v: string) => {
+    setState((s) => ({ ...s, ttsVoice: v }));
+    setPref("ttsVoice", v).catch(() => {});
+  };
   const setTTSMuted = (v: boolean) => {
     setState((s) => ({ ...s, ttsMuted: v }));
     setPref("ttsMuted", String(v)).catch(() => {});
@@ -190,6 +205,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setChatModel,
         setTTSProvider,
         setTTSRate,
+        setTTSVoice,
         setTTSMuted,
       }}
     >
