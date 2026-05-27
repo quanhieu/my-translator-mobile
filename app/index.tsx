@@ -241,25 +241,25 @@ function Header({
       <View className="flex-row items-center gap-2">
         {showTTSMute ? (
           <IconButton
-            glyph={ttsMuted ? "🔕" : "🔔"}
+            icon={ttsMuted ? "volume-mute" : "volume-high"}
             label={ttsMuted ? "TTS Off" : "TTS On"}
             onPress={onToggleTTSMute}
           />
         ) : null}
         {showMute ? (
           <IconButton
-            glyph={muted ? "🔇" : "🔊"}
+            icon={muted ? "mic-off" : "mic"}
             label={muted ? "Unmute" : "Mute"}
             onPress={onToggleMute}
           />
         ) : null}
         <IconButton
-          glyph="🕘"
+          icon="time-outline"
           label="History"
           onPress={() => router.push("/history")}
         />
         <IconButton
-          glyph="⚙️"
+          icon="settings-outline"
           label="Settings"
           onPress={() => router.push("/settings")}
         />

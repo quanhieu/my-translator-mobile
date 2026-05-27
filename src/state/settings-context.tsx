@@ -123,6 +123,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         ttsMuted: ttsMuted === "true",
         loaded: true,
       });
+      console.log("[Settings] Loaded ttsMuted from storage:", ttsMuted, "parsed:", ttsMuted === "true");
     })();
   }, []);
 
@@ -163,8 +164,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setPref("chatModel", v).catch(() => {});
   };
   const setTTSProvider = (v: TTSProvider) => {
-    setState((s) => ({ ...s, ttsProvider: v }));
+    setState((s) => ({
+      ...s,
+      ttsProvider: v,
+      ttsMuted: v === "none" ? s.ttsMuted : false, // auto-unmute when enabling TTS
+    }));
     setPref("ttsProvider", v).catch(() => {});
+    if (v !== "none") setPref("ttsMuted", "false").catch(() => {});
   };
   const setTTSRate = (v: number) => {
     setState((s) => ({ ...s, ttsRate: v }));

@@ -42,9 +42,13 @@ export class AudioCapture {
         channelCount: 1,
       },
       ({ buffer }) => {
-        const float = buffer.getChannelData(0);
-        const pcm = floatToInt16Le(float);
-        onChunk(pcm);
+        try {
+          const float = buffer.getChannelData(0);
+          const pcm = floatToInt16Le(float);
+          onChunk(pcm);
+        } catch (err) {
+          console.warn("[AudioCapture] callback error:", (err as Error).message);
+        }
       },
     );
     if (result.status === "error") {
