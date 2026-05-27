@@ -22,7 +22,10 @@ import {
 } from "expo-keep-awake";
 
 import { AudioCapture } from "@/src/lib/audio-capture";
+import { edgeTTS } from "@/src/engines/edge-tts-client";
+import { edgeTTSPlayer } from "@/src/lib/edge-tts-audio-player";
 import { hapticError, hapticStart, hapticStop } from "@/src/lib/haptics";
+import { getEdgeTTSVoice } from "@/src/lib/languages";
 import { OpenAiAudioOutputQueue } from "@/src/lib/openai-audio-output-queue";
 import { autoNameSession, saveSession } from "@/src/lib/history-store";
 import { pickKeyForModel } from "@/src/lib/openai-chat";
@@ -61,6 +64,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     sourceLang,
     targetLang,
     chatModel,
+    ttsProvider,
+    ttsRate,
+    ttsMuted,
+    setTTSProvider,
   } = useSettings();
 
   const [status, setStatus] = useState<SessionStatus>("idle");
@@ -83,6 +90,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const replaceRows = (next: TranscriptRow[]) => {
     if (next.length > MAX_ROWS) next.splice(0, next.length - MAX_ROWS);
     rowsRef.current = next;
+    console.log("[replaceRows] setting rows, count:", next.length);
     setRows(next);
   };
 
@@ -91,6 +99,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   };
 
   const upsertProvisional = (text: string) => {
+    console.log("[upsertProvisional] called with text length:", text?.length, "current rows:", rowsRef.current.length);
     const id = provisionalIdRef.current;
     if (!text) {
       if (!id) return;
@@ -107,6 +116,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } else {
       const newId = `prov-${Date.now()}`;
       provisionalIdRef.current = newId;
+      console.log("[upsertProvisional] creating new provisional row:", newId);
       pushRow({
         id: newId,
         translation: text,
@@ -216,6 +226,41 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // TTS: consecutive failure tracking for auto-disable
+  const ttsFailuresRef = useRef(0);
+  const MAX_TTS_FAILURES = 999; // temporarily disable auto-off for debugging
+
+  // Use refs for TTS settings so speakTTS always gets latest values
+  const ttsSettingsRef = useRef({ ttsProvider, ttsMuted, ttsRate, targetLang });
+  ttsSettingsRef.current = { ttsProvider, ttsMuted, ttsRate, targetLang };
+
+  // TTS completely isolated from STT - crash in TTS never affects STT
+  const speakTTS = (text: string) => {
+    try {
+      const { ttsProvider: provider, ttsMuted: muted, ttsRate: rate, targetLang: lang } = ttsSettingsRef.current;
+      if (provider !== "edge" || muted || !text.trim()) return;
+      if (ttsFailuresRef.current >= MAX_TTS_FAILURES) return;
+
+      // Fire-and-forget with full isolation
+      setTimeout(() => {
+        (async () => {
+          try {
+            const voice = getEdgeTTSVoice(lang);
+            edgeTTS.configure({ voice, rate });
+            const audio = await edgeTTS.speak(text);
+            await edgeTTSPlayer.enqueue(audio);
+            ttsFailuresRef.current = 0;
+          } catch (err) {
+            ttsFailuresRef.current++;
+            console.warn("[TTS] Error:", (err as Error).message);
+          }
+        })();
+      }, 0);
+    } catch {
+      // Never let TTS crash propagate to STT
+    }
+  };
+
   const startSoniox = async (): Promise<void> => {
     if (!sonioxKey) {
       setStatus("error");
@@ -236,29 +281,44 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       onStatusChange: (s) => setStatus(mapSonioxStatus(s)),
       onError: (msg) => setErrorMessage(msg),
       onOriginal: (text) => {
-        const last = rowsRef.current[rowsRef.current.length - 1];
-        if (last && !last.isProvisional && !last.source) {
-          const next = [...rowsRef.current];
-          next[next.length - 1] = { ...last, source: text };
-          replaceRows(next);
-        } else {
-          pushRow({
-            id: `src-${Date.now()}`,
-            source: text,
-            translation: "",
-            timestamp: Date.now(),
-          });
+        try {
+          const last = rowsRef.current[rowsRef.current.length - 1];
+          if (last && !last.isProvisional && !last.source) {
+            const next = [...rowsRef.current];
+            next[next.length - 1] = { ...last, source: text };
+            replaceRows(next);
+          } else {
+            pushRow({
+              id: `src-${Date.now()}`,
+              source: text,
+              translation: "",
+              timestamp: Date.now(),
+            });
+          }
+        } catch (err) {
+          console.warn("[STT] onOriginal error:", (err as Error).message);
         }
       },
       onTranslation: (text) => {
-        finalizeProvisional();
-        pushRow({
-          id: `t-${Date.now()}`,
-          translation: text,
-          timestamp: Date.now(),
-        });
+        try {
+          finalizeProvisional();
+          pushRow({
+            id: `t-${Date.now()}`,
+            translation: text,
+            timestamp: Date.now(),
+          });
+        } catch (err) {
+          console.warn("[STT] onTranslation error:", (err as Error).message);
+        }
+        speakTTS(text);
       },
-      onProvisional: (text) => upsertProvisional(text),
+      onProvisional: (text) => {
+        try {
+          upsertProvisional(text);
+        } catch (err) {
+          console.warn("[STT] onProvisional error:", (err as Error).message);
+        }
+      },
     });
 
     sonioxRef.current = client;
@@ -309,26 +369,38 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         // onclose runs after disconnect() too — only surface unintended closes.
       },
       onSourceProvisional: (text) => {
-        // For OpenAI: source provisional shows under translation; we mirror
-        // Soniox's "source on most recent row" pattern by stashing source on
-        // the active provisional row, or buffering until segment fires.
-        const id = provisionalIdRef.current;
-        if (!id) return;
-        const next = rowsRef.current.map((r) =>
-          r.id === id ? { ...r, source: text } : r,
-        );
-        replaceRows(next);
+        try {
+          const id = provisionalIdRef.current;
+          if (!id) return;
+          const next = rowsRef.current.map((r) =>
+            r.id === id ? { ...r, source: text } : r,
+          );
+          replaceRows(next);
+        } catch (err) {
+          console.warn("[STT] onSourceProvisional error:", (err as Error).message);
+        }
       },
-      onProvisional: (text) => upsertProvisional(text),
+      onProvisional: (text) => {
+        try {
+          upsertProvisional(text);
+        } catch (err) {
+          console.warn("[STT] onProvisional error:", (err as Error).message);
+        }
+      },
       onSegment: (src, tgt) => {
-        finalizeProvisional();
-        if (!src && !tgt) return;
-        pushRow({
-          id: `seg-${Date.now()}`,
-          source: src || undefined,
-          translation: tgt,
-          timestamp: Date.now(),
-        });
+        try {
+          finalizeProvisional();
+          if (!src && !tgt) return;
+          pushRow({
+            id: `seg-${Date.now()}`,
+            source: src || undefined,
+            translation: tgt,
+            timestamp: Date.now(),
+          });
+        } catch (err) {
+          console.warn("[STT] onSegment error:", (err as Error).message);
+        }
+        if (tgt) speakTTS(tgt);
       },
     });
 
@@ -386,16 +458,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       onClosed: () => {
         // onclose runs after disconnect() too — only surface unintended closes.
       },
-      onProvisional: (text) => upsertProvisional(text),
+      onProvisional: (text) => {
+        try {
+          upsertProvisional(text);
+        } catch (err) {
+          console.warn("[STT] onProvisional error:", (err as Error).message);
+        }
+      },
       onSegment: (src, tgt) => {
-        finalizeProvisional();
-        if (!src && !tgt) return;
-        pushRow({
-          id: `seg-${Date.now()}`,
-          source: src || undefined,
-          translation: tgt,
-          timestamp: Date.now(),
-        });
+        try {
+          finalizeProvisional();
+          if (!src && !tgt) return;
+          pushRow({
+            id: `seg-${Date.now()}`,
+            source: src || undefined,
+            translation: tgt,
+            timestamp: Date.now(),
+          });
+        } catch (err) {
+          console.warn("[STT] onSegment error:", (err as Error).message);
+        }
+        if (tgt) speakTTS(tgt);
       },
     });
 
