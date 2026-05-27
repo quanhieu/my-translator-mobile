@@ -53,6 +53,8 @@ export default function SettingsScreen() {
     sourceLang,
     targetLang,
     chatModel,
+    ttsProvider,
+    ttsRate,
     setSonioxKey,
     setOpenaiKey,
     setQwenKey,
@@ -60,6 +62,8 @@ export default function SettingsScreen() {
     setSourceLang,
     setTargetLang,
     setChatModel,
+    setTTSProvider,
+    setTTSRate,
   } = useSettings();
 
   const langs: Language[] = langsForEngine(engine);
@@ -212,6 +216,53 @@ export default function SettingsScreen() {
             {engine === "qwen"
               ? "Used for summary, chat, and auto-naming. Runs on your DashScope key."
               : "Used for summary, chat, and auto-naming. Runs on your OpenAI key."}
+          </Text>
+        </Section>
+
+        <Section title="Text-to-Speech">
+          <Row>
+            <Choice
+              label="Off"
+              active={ttsProvider === "none"}
+              onPress={() => setTTSProvider("none")}
+            />
+            <Choice
+              label="Edge TTS"
+              active={ttsProvider === "edge"}
+              onPress={() => setTTSProvider("edge")}
+            />
+          </Row>
+          {ttsProvider === "edge" ? (
+            <View className="mt-3">
+              <Text className="text-zinc-700 dark:text-zinc-300 text-sm mb-2">
+                Speed: {ttsRate >= 0 ? `+${ttsRate}%` : `${ttsRate}%`}
+              </Text>
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={() => setTTSRate(Math.max(-50, ttsRate - 10))}
+                  className="w-10 h-8 rounded border border-zinc-300 dark:border-zinc-700 items-center justify-center"
+                >
+                  <Text className="text-zinc-700 dark:text-zinc-300">−</Text>
+                </Pressable>
+                <View className="flex-1 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-full">
+                  <View
+                    className="h-2 bg-zinc-600 dark:bg-zinc-400 rounded-full"
+                    style={{ width: `${((ttsRate + 50) / 150) * 100}%` }}
+                  />
+                </View>
+                <Pressable
+                  onPress={() => setTTSRate(Math.min(100, ttsRate + 10))}
+                  className="w-10 h-8 rounded border border-zinc-300 dark:border-zinc-700 items-center justify-center"
+                >
+                  <Text className="text-zinc-700 dark:text-zinc-300">+</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+          <Text className="text-zinc-500 text-xs mt-2">
+            {ttsProvider === "edge"
+              ? "Free Microsoft Edge TTS. Voice auto-matches target language."
+              : "Enable to hear translated text spoken aloud."}
           </Text>
         </Section>
 
